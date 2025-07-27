@@ -233,15 +233,15 @@ class _DetailsMobileState extends State<DetailsMobile> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              buildFilterOption(" Today ", 0, () => filterTasksToday()),
-              buildFilterOption(" This Week ", 1, () => filterTasksLastWeek()),
-              buildFilterOption(" This Month ", 2, () {
+              buildFilterOption("Today", 0, () => filterTasksToday()),
+              buildFilterOption("This Week", 1, () => filterTasksLastWeek()),
+              buildFilterOption("This Month", 2, () {
                 _selectMonth(context);
               }),
-              buildFilterOption(" This Year ", 3, () {
+              buildFilterOption("This Year", 3, () {
                 _selectYear(context);
               }),
-              buildFilterOption(" All ", 4, () => setFilter(TaskStatus.all)),
+              buildFilterOption("All", 4, () => setFilter(TaskStatus.all)),
             ],
           ),
         ),
@@ -254,26 +254,28 @@ class _DetailsMobileState extends State<DetailsMobile> {
     final bgColor = isSelected ? Colors.blue : Colors.white;
     final textColor = isSelected ? Colors.white : Colors.black;
 
-    return Card(
-      color: bgColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20.0),
-        side: BorderSide(color: Colors.black),
-      ),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            selectedFilterIndex = index;
-          });
-          onPressed();
-        },
-        borderRadius: BorderRadius.circular(20.0),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 5),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: textColor,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        elevation: 2,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              selectedFilterIndex = index;
+            });
+            onPressed();
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ),
@@ -288,7 +290,7 @@ class _DetailsMobileState extends State<DetailsMobile> {
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: Colors.blue,
             expandedHeight: 150.0,
             floating: false,
             pinned: true,
@@ -298,15 +300,23 @@ class _DetailsMobileState extends State<DetailsMobile> {
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
+              title: const Text(
                 'Work Details',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
-              background: Container(color: Colors.black),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.blue.shade700, Colors.blue.shade400],
+                  ),
+                ),
+              ),
             ),
             actions: <Widget>[
               IconButton(
-                icon: Icon(Icons.menu, color: Colors.white),
+                icon: const Icon(Icons.menu, color: Colors.white),
                 onPressed: () {
                   _scaffoldKey.currentState?.openEndDrawer();
                 },
@@ -320,45 +330,40 @@ class _DetailsMobileState extends State<DetailsMobile> {
       ),
       endDrawer: Drawer(
         width: 300,
-        backgroundColor: Colors.grey[200], // Changed background color
-        child: ListView(
+        backgroundColor: Colors.grey[100],
+        child: Column(
           children: [
-            ListTile(
-              title: const Text("All", style: TextStyle(color: Colors.black)),
-              selected: filter == TaskStatus.all,
-              onTap: () {
-                setFilter(TaskStatus.all);
-                Navigator.pop(context);
-              },
+            Container(
+              height: 150,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.blue.shade700, Colors.blue.shade400]),
+              ),
+              child: Center(
+                child: Text(
+                  'Filter Tasks',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
-            ListTile(
-              title: const Text("Active", style: TextStyle(color: Colors.black)),
-              selected: filter == TaskStatus.active,
-              onTap: () {
-                setFilter(TaskStatus.active);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: const Text("Pending", style: TextStyle(color: Colors.black)),
-              selected: filter == TaskStatus.pending,
-              onTap: () {
-                setFilter(TaskStatus.pending);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: const Text("Completed", style: TextStyle(color: Colors.black)),
-              selected: filter == TaskStatus.completed,
-              onTap: () {
-                setFilter(TaskStatus.completed);
-                Navigator.pop(context);
-              },
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildDrawerItem("All Tasks", Icons.list, TaskStatus.all),
+                  _buildDrawerItem("Active", Icons.play_arrow, TaskStatus.active),
+                  _buildDrawerItem("Pending", Icons.pending, TaskStatus.pending),
+                  _buildDrawerItem("Completed", Icons.check_circle, TaskStatus.completed),
+                ],
+              ),
             ),
           ],
         ),
       ),
-      drawerEnableOpenDragGesture: false, // Disables swipe-to-open
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
         onPressed: () {
@@ -370,6 +375,21 @@ class _DetailsMobileState extends State<DetailsMobile> {
           color: Colors.white,
         ),
       ),
+    );
+  }
+
+  Widget _buildDrawerItem(String title, IconData icon, TaskStatus status) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.blue),
+      title: Text(title,
+          style: TextStyle(
+              color: filter == status ? Colors.blue : Colors.black87,
+              fontWeight: filter == status ? FontWeight.bold : FontWeight.normal)),
+      onTap: () {
+        setFilter(status);
+        Navigator.pop(context);
+      },
+      tileColor: filter == status ? Colors.blue.withOpacity(0.1) : null,
     );
   }
 
@@ -388,89 +408,157 @@ class _DetailsMobileState extends State<DetailsMobile> {
   }
 
   Widget _buildTaskList() {
-    return Column(
-      children: tasks.map((task) => _buildTaskItem(task)).toList(),
+    if (tasks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.assignment, size: 60, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No tasks found',
+              style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tasks.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => _buildTaskItem(tasks[index]),
     );
   }
 
   Widget _buildTaskItem(Task task) {
+    Color statusColor;
+    IconData statusIcon;
+
+    switch (task.status) {
+      case TaskStatus.active:
+        statusColor = Colors.orange;
+        statusIcon = Icons.play_arrow;
+        break;
+      case TaskStatus.completed:
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        break;
+      case TaskStatus.pending:
+        statusColor = Colors.red;
+        statusIcon = Icons.pending;
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help_outline;
+    }
+
     return FadeInUp(
       child: Card(
-        color: Colors.white,
-        elevation: 2,
-        margin: const EdgeInsets.symmetric(vertical: 8),
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                task.title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(statusIcon, color: statusColor, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      task.title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+              _buildDetailRow(Icons.calendar_today, 'Added: ${task.date}'),
               const SizedBox(height: 8),
-              Text(
-                'Status: ${task.status.toString().split('.').last}',
-                style: const TextStyle(color: Colors.grey),
-              ),
+              _buildDetailRow(Icons.timer, 'Start: ${task.startDate}'),
               const SizedBox(height: 8),
-              Text(
-                'Date: ${task.date}',
-                style: const TextStyle(color: Colors.grey),
-              ),
+              _buildDetailRow(Icons.timer_off, 'End: ${task.endDate}'),
               const SizedBox(height: 8),
-              Text(
-                'Start Date: ${task.startDate}',
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'End Date: ${task.endDate}',
-                style: const TextStyle(color: Colors.grey),
-              ),
+              _buildStatusChip(task.status),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class AppBarClipper extends CustomClipper<Path> {
-  final double controlPointPercentage;
-
-  AppBarClipper({this.controlPointPercentage = 0.5});
-
-  @override
-  Path getClip(Size size) {
-    var path = Path();
-
-    final p0 = size.height * 0.75;
-    path.lineTo(0, p0);
-
-    final controlPoint =
-    Offset(size.width * controlPointPercentage, size.height);
-    final endPoint = Offset(
-        size.width, size.width < 600 ? size.height / 1.5 : size.height / 2);
-    path.quadraticBezierTo(
-        controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
-
-    path.lineTo(size.width, 0);
-    path.close();
-
-    return path;
+  Widget _buildDetailRow(IconData icon, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: Colors.grey),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(color: Colors.grey[700]),
+          ),
+        ),
+      ],
+    );
   }
 
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) =>
-      oldClipper != this;
-}
+  Widget _buildStatusChip(TaskStatus status) {
+    Color chipColor;
+    String statusText;
 
-enum TaskStatus { active, completed, pending, all }
+    switch (status) {
+      case TaskStatus.active:
+        chipColor = Colors.orange;
+        statusText = 'In Progress';
+        break;
+      case TaskStatus.completed:
+        chipColor = Colors.green;
+        statusText = 'Completed';
+        break;
+      case TaskStatus.pending:
+        chipColor = Colors.red;
+        statusText = 'Pending';
+        break;
+      default:
+        chipColor = Colors.grey;
+        statusText = 'Unknown';
+    }
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Chip(
+        backgroundColor: chipColor.withOpacity(0.1),
+        label: Text(
+          statusText,
+          style: TextStyle(color: chipColor),
+        ),
+        avatar: Icon(Icons.circle, color: chipColor, size: 12),
+      ),
+    );
+  }
+}
 
 class Task {
   final String title;
@@ -482,58 +570,4 @@ class Task {
   Task(this.title, this.status, this.date, this.startDate, this.endDate);
 }
 
-class TaskStatusIcon extends StatelessWidget {
-  final TaskStatus status;
-
-  TaskStatusIcon(this.status);
-
-  @override
-  Widget build(BuildContext context) {
-    IconData iconData;
-    Color color;
-    switch (status) {
-      case TaskStatus.active:
-        iconData = Icons.circle;
-        color = Colors.green;
-        break;
-      case TaskStatus.completed:
-        iconData = Icons.check_circle;
-        color = Colors.green;
-        break;
-      case TaskStatus.pending:
-        iconData = Icons.circle;
-        color = Colors.red;
-        break;
-      default:
-        iconData = Icons.circle;
-        color = Colors.grey;
-    }
-    return Icon(iconData, color: color);
-  }
-}
-
-class TaskCount extends StatelessWidget {
-  final TaskStatus taskStatus;
-  final List<Task> tasks;
-
-  TaskCount({required this.taskStatus, required this.tasks});
-
-  @override
-  Widget build(BuildContext context) {
-    final count = tasks.where((task) => task.status == taskStatus).length;
-
-    return Column(
-      children: [
-        TaskStatusIcon(taskStatus),
-        Text(
-          '$count',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          taskStatus.toString().split('.').last.toUpperCase(),
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-}
+enum TaskStatus { active, completed, pending, all }

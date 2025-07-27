@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -26,335 +28,410 @@ class Contact_Edit extends StatefulWidget {
 }
 
 class _Mob_Contact_Edit extends State<Contact_Edit> {
-  TextEditingController user = TextEditingController();
-  TextEditingController course = TextEditingController();
-  TextEditingController sem = TextEditingController();
-  TextEditingController smob = TextEditingController();
-  TextEditingController fmob = TextEditingController();
-  TextEditingController mmob = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController user;
+  late TextEditingController course;
+  late TextEditingController sem;
+  late TextEditingController smob;
+  late TextEditingController fmob;
+  late TextEditingController mmob;
+
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    user.text = widget.id;
-    course.text = widget.course;
-    sem.text = widget.sem;
-    smob.text = widget.sMob;
-    fmob.text = widget.fMob;
-    mmob.text = widget.mMob;
+    user = TextEditingController(text: widget.id);
+    course = TextEditingController(text: widget.course);
+    sem = TextEditingController(text: widget.sem);
+    smob = TextEditingController(text: widget.sMob);
+    fmob = TextEditingController(text: widget.fMob);
+    mmob = TextEditingController(text: widget.mMob);
+  }
+
+  @override
+  void dispose() {
+    user.dispose();
+    course.dispose();
+    sem.dispose();
+    smob.dispose();
+    fmob.dispose();
+    mmob.dispose();
+    super.dispose();
   }
 
   Future<void> _Contact_Edit() async {
-    final response = await http.post(
-      Uri.parse('https://creativecollege.in/Flutter/Contact.php'),
-      body: {
-        'user': user.text.trim().trim(),
-        'course': course.text.trim(),
-        'sem': sem.text.trim(),
-        'smob': smob.text.trim(),
-        'fmob': fmob.text.trim(),
-        'mmob': mmob.text.trim(),
-      },
-    );
+    if (!_formKey.currentState!.validate()) return;
 
-    Fluttertoast.showToast(
-      msg: response.body,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.green,
-      textColor: Colors.white,
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://creativecollege.in/Flutter/Contact.php'),
+        body: {
+          'user': user.text.trim(),
+          'course': course.text.trim(),
+          'sem': sem.text.trim(),
+          'smob': smob.text.trim(),
+          'fmob': fmob.text.trim(),
+          'mmob': mmob.text.trim(),
+        },
+      );
+
+      // First check if response is JSON
+      try {
+        final responseData = json.decode(response.body);
+        if (response.statusCode == 200) {
+          if (responseData is Map && responseData.containsKey('success')) {
+            if (responseData['success']) {
+              Fluttertoast.showToast(
+                msg: responseData['message'] ?? 'Contact updated successfully',
+                gravity: ToastGravity.BOTTOM,
+                backgroundColor: Colors.green,
+                textColor: Colors.white,
+              );
+              Navigator.pop(context, true);
+            } else {
+              throw Exception(responseData['message'] ?? 'Update failed');
+            }
+          } else {
+            // Handle case where response is not in expected JSON format
+            Fluttertoast.showToast(
+              msg: response.body,
+              gravity: ToastGravity.BOTTOM,
+              backgroundColor: Colors.green,
+              textColor: Colors.white,
+            );
+            Navigator.pop(context, true);
+          }
+        } else {
+          throw Exception('Server error: ${response.statusCode}');
+        }
+      } catch (e) {
+        // If JSON parsing fails, treat as plain text response
+        if (response.statusCode == 200) {
+          Fluttertoast.showToast(
+            msg: response.body,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          Navigator.pop(context, true);
+        } else {
+          throw Exception('Failed to update contact: ${response.body}');
+        }
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: e.toString(),
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Container(
-          child: Column(
-            children: <Widget>[
-              Container(
-                height: 150,
-                child: Stack(
-                  children: <Widget>[
-                    Positioned(
-                      child: FadeInUp(
-                        duration: const Duration(milliseconds: 1600),
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 10),
-                          child: const Center(
-                            child: Text(
-                              "Edit Contact",
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 35,
-                                fontWeight: FontWeight.bold,
+      appBar: AppBar(
+        title: const Text("Edit Contact"),
+        backgroundColor: const Color.fromRGBO(143, 148, 251, 1),
+        elevation: 0,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Container(
+            padding: const EdgeInsets.all(30.0),
+            child: Column(
+              children: <Widget>[
+                FadeInUp(
+                  duration: const Duration(milliseconds: 1800),
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color.fromRGBO(143, 148, 251, 1),
+                      ),
+                      boxShadow: [
+                        const BoxShadow(
+                          color: Color.fromRGBO(143, 148, 251, .2),
+                          blurRadius: 20.0,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color.fromRGBO(143, 148, 251, 1),
+                              ),
+                            ),
+                          ),
+                          child: TextFormField(
+                            controller: user,
+                            readOnly: true, // ID shouldn't be editable
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: "Student ID",
+                              hintStyle: TextStyle(
+                                color: Colors.grey[700],
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(30.0),
-                child: Column(
-                  children: <Widget>[
-                    FadeInUp(
-                      duration: const Duration(milliseconds: 1800),
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: const Color.fromRGBO(143, 148, 251, 1),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color.fromRGBO(143, 148, 251, 1),
+                              ),
+                            ),
                           ),
-                          boxShadow: [
-                            const BoxShadow(
-                              color: Color.fromRGBO(143, 148, 251, .2),
-                              blurRadius: 20.0,
-                              offset: Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: <Widget>[
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Color.fromRGBO(143, 148, 251, 1),
-                                  ),
-                                ),
-                              ),
-                              child: TextField(
-                                controller: user,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: "Student Id",
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Color.fromRGBO(143, 148, 251, 1),
-                                  ),
-                                ),
-                              ),
-                              child: TextField(
-                                controller: course,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  label: const Text('Enter New Course'),
-                                  hintText: "Student Id",
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Color.fromRGBO(143, 148, 251, 1),
-                                  ),
-                                ),
-                              ),
-                              child: TextField(
-                                controller: sem,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  label: const Text('Enter New Semester'),
-                                  hintText: "Student Id",
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Color.fromRGBO(143, 148, 251, 1),
-                                  ),
-                                ),
-                              ),
-                              child: TextField(
-                                controller: smob,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  label: const Text('Enter New Number'),
-                                  hintText: "Student Id",
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Color.fromRGBO(143, 148, 251, 1),
-                                  ),
-                                ),
-                              ),
-                              child: TextField(
-                                controller: fmob,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  label:
-                                      const Text('Enter Father`s New Number'),
-                                  hintText: "Student Id",
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: const BoxDecoration(
-                                  // border: Border(
-                                  //   bottom: BorderSide(
-                                  //     color: Color.fromRGBO(143, 148, 251, 1),
-                                  //   ),
-                                  // ),
-                                  ),
-                              child: TextField(
-                                controller: mmob,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  label:
-                                      const Text('Enter Mother`s New Number'),
-                                  hintText: "Course",
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // ... other text fields
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 30,
-                    ),
-                    FadeInUp(
-                      duration: const Duration(milliseconds: 1900),
-                      child: InkWell(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                backgroundColor:
-                                    Colors.white, // Set background color
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20.0),
-                                ), // Set rounded corner
-                                title: Text(
-                                  "Confirm Edit",
-                                  style: TextStyle(
-                                    color: Colors.black, // Set title text color
-                                  ),
-                                ),
-                                content: Text(
-                                  "Are you sure you want to Edit Contact Details ?",
-                                  style: TextStyle(
-                                    color:
-                                        Colors.black, // Set content text color
-                                  ),
-                                ),
-                                actions: <Widget>[
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context)
-                                          .pop(); // Close the dialog
-                                    },
-                                    child: Text(
-                                      "Cancel",
-                                      style: TextStyle(
-                                        color: Colors
-                                            .blue, // Set cancel button text color
-                                      ),
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      // Perform delete operation
-                                      _Contact_Edit();
-                                      Navigator.of(context)
-                                          .pop(); // Close the dialog
-                                    },
-                                    child: Text(
-                                      "Edit",
-                                      style: TextStyle(
-                                        color: Colors
-                                            .red, // Set delete button text color
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
+                          child: TextFormField(
+                            controller: course,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter course';
+                              }
+                              return null;
                             },
-                          );
-                        },
-                        child: Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color.fromRGBO(143, 148, 251, 1),
-                                Color.fromRGBO(143, 148, 251, .6),
-                              ],
-                            ),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              "Edit Contact",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              label: const Text('Course'),
+                              hintStyle: TextStyle(
+                                color: Colors.grey[700],
                               ),
                             ),
                           ),
                         ),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color.fromRGBO(143, 148, 251, 1),
+                              ),
+                            ),
+                          ),
+                          child: TextFormField(
+                            controller: sem,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter semester';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              label: const Text('Semester'),
+                              hintStyle: TextStyle(
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color.fromRGBO(143, 148, 251, 1),
+                              ),
+                            ),
+                          ),
+                          child: TextFormField(
+                            controller: smob,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter student mobile';
+                              }
+                              if (value.length != 10) {
+                                return 'Enter valid 10-digit number';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              label: const Text('Student Mobile'),
+                              hintStyle: TextStyle(
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Color.fromRGBO(143, 148, 251, 1),
+                              ),
+                            ),
+                          ),
+                          child: TextFormField(
+                            controller: fmob,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter father mobile';
+                              }
+                              if (value.length != 10) {
+                                return 'Enter valid 10-digit number';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              label: const Text('Father Mobile'),
+                              hintStyle: TextStyle(
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            controller: mmob,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter mother mobile';
+                              }
+                              if (value.length != 10) {
+                                return 'Enter valid 10-digit number';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              label: const Text('Mother Mobile'),
+                              hintStyle: TextStyle(
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                FadeInUp(
+                  duration: const Duration(milliseconds: 1900),
+                  child: InkWell(
+                    onTap: _isLoading
+                        ? null
+                        : () {
+                      if (_formKey.currentState!.validate()) {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                BorderRadius.circular(20.0),
+                              ),
+                              title: const Text(
+                                "Confirm Edit",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                ),
+                              ),
+                              content: const Text(
+                                "Are you sure you want to edit these contact details?",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                ),
+                              ),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text(
+                                    "Cancel",
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.of(context).pop();
+                                    await _Contact_Edit();
+                                  },
+                                  child: const Text(
+                                    "Edit",
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }
+                    },
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color.fromRGBO(143, 148, 251, 1),
+                            Color.fromRGBO(143, 148, 251, .6),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(
-                      height: 70,
-                    ),
-                    FadeInUp(
-                      duration: const Duration(milliseconds: 2000),
-                      child: const Text(
-                        "Designed By Technocrat",
-                        style: TextStyle(
-                          color: Color.fromRGBO(143, 148, 251, 1),
+                      child: Center(
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                          color: Colors.white,
+                        )
+                            : const Text(
+                          "Update Contact",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              )
-            ],
+                const SizedBox(height: 30),
+                FadeInUp(
+                  duration: Duration(milliseconds: 2000),
+                  child: Text(
+                    "Designed By Technocrat",
+                    style: TextStyle(
+                      color: Color.fromRGBO(143, 148, 251, 1),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

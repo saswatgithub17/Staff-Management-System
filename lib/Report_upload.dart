@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-// import 'package:flutter_application_1/mobile/pdfView.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
@@ -71,6 +70,7 @@ class _ReportState extends State<Report_upload> {
 
       if (fileExtension == 'pdf') {
         await uploadFile(_selectedFile!);
+        await fetchData(); // Refresh the list after upload
       } else {
         _showToast(
             'Unsupported file format. Please select a PDF file.', Colors.red);
@@ -121,21 +121,23 @@ class _ReportState extends State<Report_upload> {
             ),
           ),
           SliverToBoxAdapter(
-            child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _isLoading
-                      ? CircularProgressIndicator()
-                      : FileUploader(
+                  FileUploader(
                     selectedFile: _selectedFile,
                     onSelectFile: _selectFile,
                     onUploadFile: _uploadFile,
+                    isLoading: _isLoading,
                   ),
                   SizedBox(height: 20),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.5, // Adjust height as needed
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.6,
+                    ),
                     child: ListView.builder(
+                      shrinkWrap: true,
                       itemCount: items.length,
                       itemBuilder: (BuildContext context, int index) {
                         return Card(
@@ -143,14 +145,21 @@ class _ReportState extends State<Report_upload> {
                           shadowColor: _color1,
                           margin: EdgeInsets.all(8),
                           child: ListTile(
-                            title: Text(items[index]['Filename'].toString()),
+                            title: Text(
+                              items[index]['Filename'].toString(),
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                    'Uploaded : ${items[index]['Month']} ${items[index]['Year']}'),
+                                    'Uploaded: ${items[index]['Month']} ${items[index]['Year']}'),
+                                if (items[index]['Upload_Date'] != null)
+                                  Text(
+                                      'Date: ${items[index]['Upload_Date']}'),
                               ],
                             ),
+                            trailing: Icon(Icons.arrow_forward_ios, size: 16),
                             onTap: () {
                               String name = items[index]['Filename'].toString();
                               Navigator.push(
@@ -182,105 +191,86 @@ class FileUploader extends StatelessWidget {
   final File? selectedFile;
   final VoidCallback onSelectFile;
   final VoidCallback onUploadFile;
-
-  List<dynamic> items = [];
-
-  Future<void> fetchData() async {
-    var url =
-    Uri.parse('https://creativecollege.in/Flutter/Retrive_Report.php');
-
-    var response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      items = json.decode(response.body);
-    } else {
-      print('Failed to load data');
-    }
-  }
+  final bool isLoading;
 
   FileUploader({
     Key? key,
     required this.selectedFile,
     required this.onSelectFile,
     required this.onUploadFile,
+    required this.isLoading,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     const _color1 = Colors.black;
-    return Column(
-      children: [
-        Container(
-          padding: EdgeInsets.all(20),
-          margin: EdgeInsets.only(top: 8),
-          decoration: BoxDecoration(
-            border: Border.all(
-              width: 1,
-              color: _color1,
-            ),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              bottomRight: Radius.circular(20),
-            ),
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: _color1,
-                blurRadius: 5,
-                offset: Offset(0, 3),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            if (selectedFile != null)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Selected: ${selectedFile!.path.split('/').last}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (selectedFile != null)
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Text(
-                    '     ${selectedFile!.path.split('/').last}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onSelectFile,
+                    icon: Icon(Icons.attach_file, color: Colors.white),
+                    label: Text('Select File', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
-              ElevatedButton.icon(
-                onPressed: onSelectFile,
-                icon: Icon(
-                  Icons.attach_file,
-                  color: Colors.white,
-                ),
-                label: Text(
-                  'Select File',
-                  style: TextStyle(color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                ),
-              ),
-              SizedBox(height: 10),
-              ElevatedButton.icon(
-                onPressed: onUploadFile,
-                icon: Icon(
-                  Icons.cloud_upload,
-                  color: Colors.white,
-                ),
-                label: Text(
-                  'Upload File',
-                  style: TextStyle(
-                    color: Colors.white,
+                SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: isLoading ? null : onUploadFile,
+                    icon: isLoading
+                        ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                      ),
+                    )
+                        : Icon(Icons.cloud_upload, color: Colors.white),
+                    label: Text(
+                      isLoading ? 'Uploading...' : 'Upload File',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      disabledBackgroundColor: Colors.green.withOpacity(0.5),
+                    ),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                ),
-              ),
-            ],
-          ),
-        )
-      ],
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -296,10 +286,10 @@ Future<void> uploadFile(File file) async {
     );
 
     request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          file.path,
-        ),);
+      await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+      ),);
 
     request.fields['userId'] = userID;
 

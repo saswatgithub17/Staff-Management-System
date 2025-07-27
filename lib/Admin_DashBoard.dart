@@ -18,32 +18,45 @@ class Admin_Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Admin_Dashboard> {
-  late String pickedImagePath;
+  // Black and white color scheme
+  final Color primaryColor = Colors.black;
+  final Color backgroundColor = Colors.white;
+  final Color cardColor = Colors.white;
+  final Color textColor = Colors.black;
+  final Color iconColor = Colors.black87;
+  final Color borderColor = Colors.grey.shade300;
 
-  Widget _buildCard(IconData icon, String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        color: Colors.white,
-        elevation: 5,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: Colors.black),
-            const SizedBox(height: 12),
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+  Widget _buildDashboardCard(IconData icon, String title, VoidCallback onTap) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: borderColor, width: 1),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        hoverColor: Colors.grey.shade100,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 36, color: iconColor),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -52,130 +65,86 @@ class _DashboardState extends State<Admin_Dashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        title: Text('Admin Dashboard',
+            style: TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 20)),
+        centerTitle: true,
+        backgroundColor: backgroundColor,
+        elevation: 0,
+        iconTheme: IconThemeData(color: primaryColor),
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          if (constraints.maxWidth < 600) {
-            return _buildSmallScreenView();
-          } else {
-            return _buildLargeScreenView();
-          }
+          final crossAxisCount = constraints.maxWidth < 600 ? 2 : 4;
+          final childAspectRatio = constraints.maxWidth < 600 ? 1.0 : 1.1;
+
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: GridView.count(
+              crossAxisCount: crossAxisCount,
+              childAspectRatio: childAspectRatio,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 16,
+              children: _buildDashboardItems(context),
+            ),
+          );
         },
       ),
     );
   }
 
-  Widget _buildSmallScreenView() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: GridView.count(
-        crossAxisCount: 2,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
-        children: _buildDashboardCards(context),
-      ),
-    );
-  }
-
-  Widget _buildLargeScreenView() {
-    return Center(
-      child: SizedBox(
-        width: 800,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: GridView.count(
-            crossAxisCount: 4,
-            mainAxisSpacing: 20,
-            crossAxisSpacing: 20,
-            children: _buildDashboardCards(context),
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildDashboardCards(BuildContext context) {
+  List<Widget> _buildDashboardItems(BuildContext context) {
     return [
-      _buildCard(Icons.work_history, 'Date Wise Work', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AdminDateWiseWork(),
-          ),
-        );
+      _buildDashboardCard(Icons.calendar_today, 'Date Wise Work', () {
+        _navigateTo(context, AdminDateWiseWork());
       }),
-      _buildCard(Icons.delete_forever, 'Delete Staff', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => StaffDelete(),
-          ),
-        );
+      _buildDashboardCard(Icons.person_remove, 'Delete Staff', () {
+        _navigateTo(context, StaffDelete());
       }),
-      _buildCard(Icons.leave_bags_at_home_outlined, 'Staff Leave', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Admin_Leave_Page(),
-          ),
-        );
+      _buildDashboardCard(Icons.beach_access, 'Staff Leave', () {
+        _navigateTo(context, Admin_Leave_Page());
       }),
-      _buildCard(Icons.present_to_all, 'Student Contact', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Admin_ContactPrev(),
-          ),
-        );
+      _buildDashboardCard(Icons.contacts, 'Student Contact', () {
+        _navigateTo(context, Admin_ContactPrev());
       }),
-      _buildCard(Icons.add, 'Add Staff', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => StaffAdd(),
-          ),
-        );
+      _buildDashboardCard(Icons.person_add, 'Add Staff', () {
+        _navigateTo(context, StaffAdd());
       }),
-      _buildCard(Icons.present_to_all, 'Student Attendnance', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Attendance(),
-          ),
-        );
+      _buildDashboardCard(Icons.people, 'Student Attendance', () {
+        _navigateTo(context, Attendance());
       }),
-      _buildCard(Icons.assignment_add, 'Assign Work', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Admin_ADD_WORK(),
-          ),
-        );
+      _buildDashboardCard(Icons.assignment, 'Assign Work', () {
+        _navigateTo(context, Admin_ADD_WORK());
       }),
-      _buildCard(Icons.assignment_add, 'Assign Flag', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Workdelay(),
-          ),
-        );
+      _buildDashboardCard(Icons.flag, 'Assign Flag', () {
+        _navigateTo(context, Workdelay());
       }),
-      _buildCard(Icons.assignment_add, 'Red Flag Faculty', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RedFlagPage(),
-          ),
-        );
+      _buildDashboardCard(Icons.warning, 'Red Flag Faculty', () {
+        _navigateTo(context, RedFlagPage());
       }),
-      _buildCard(Icons.assignment_add, 'Feedback', () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Feedbackpage(),
-          ),
-        );
+      _buildDashboardCard(Icons.comment, 'Feedback', () {
+        _navigateTo(context, Feedbackpage());
       }),
     ];
+  }
+
+  void _navigateTo(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        transitionDuration: Duration(milliseconds: 200),
+      ),
+    );
   }
 }

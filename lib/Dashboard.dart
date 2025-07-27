@@ -13,38 +13,82 @@ import 'package:staff_task_management/mobile/mob_task_mgmt.dart';
 import 'package:staff_task_management/staff_leave.dart';
 import 'package:staff_task_management/student_attendance.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'mis/mis.dart';
 import 'mobile/mob_Profile.dart';
 import 'dart:convert';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
-
+import 'package:staff_task_management/admin_leave_mgmt.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({Key? key}) : super(key: key);
-
   @override
   _DashboardState createState() => _DashboardState();
 }
 
 class _DashboardState extends State<Dashboard> {
+  bool _isDarkMode = false;
+
+  void _toggleTheme() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
+  }
+  static const _lastSeenLeaveKey = 'lastSeenLeaveStatus';
+  static const _hasSeenLeavePopupKey = 'hasSeenLeavePopup';
   final _color1 = const Color(0xFFC21E56);
   XFile? _pickedImage;
-  late String pickedImagePath;
   Map<String, dynamic>? data;
   bool isLoading = true;
   String error = '';
+  bool _showDesignerCredit = true;
+  List<dynamic> myLeaveRequests = [];
+  bool _showLeaveStatusPopup = false;
+  Map<String, dynamic>? _latestLeaveStatus;
+  String? _latestStatusKey;
 
   Future<void> loadImagePath() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? savedImagePath = prefs.getString('pickedImagePath');
+    if (savedImagePath != null) {
+      setState(() => _pickedImage = XFile(savedImagePath));
+    }
+  }
 
-    setState(() {
-      if (savedImagePath != null) {
-        _pickedImage = XFile(savedImagePath);
-      }
-    });
+  Future<void> fetchMyLeaveRequests() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userID = prefs.getString('userID') ?? '';
+
+    final url = Uri.parse('https://creativecollege.in/Flutter/Leave_Data.php');
+    final response = await http.get(url);
+    if (response.statusCode != 200) return;
+
+    final allData = json.decode(response.body) as List<dynamic>;
+    final myData = allData.where((item) => item['ID'] == userID).toList();
+    if (myData.isEmpty) return;
+
+    final latest = myData.last as Map<String, dynamic>;
+    final status = latest['Status'] as String;
+    final statusKey = '${latest['Start_Date']}_${latest['Last_Date']}_$status';
+
+    final hasSeenPopup = prefs.getBool(_hasSeenLeavePopupKey) ?? false;
+    final seenKey = prefs.getString(_lastSeenLeaveKey);
+
+    // Only show if:
+    // 1. Status is not pending
+    // 2. It's a new status we haven't seen before
+    // 3. User hasn't seen any popup yet for this status
+    if (status != 'Pending' &&
+        statusKey != seenKey &&
+        !hasSeenPopup) {
+      setState(() {
+        _latestLeaveStatus = latest;
+        _latestStatusKey = statusKey;
+        _showLeaveStatusPopup = true;
+      });
+    }
   }
 
   Future<void> fetchData(String id) async {
@@ -52,22 +96,18 @@ class _DashboardState extends State<Dashboard> {
         'https://creativecollege.in/Flutter/Work/singledata_redflag.php?id=$id';
     try {
       final response = await http.get(Uri.parse(url));
-
       if (response.statusCode == 200) {
-        // If the server returns an OK response, parse the JSON
         setState(() {
           data = jsonDecode(response.body);
           isLoading = false;
         });
       } else {
-        // If the server did not return a 200 OK response, throw an exception
         setState(() {
           error = 'Failed to load data';
           isLoading = false;
         });
       }
     } catch (e) {
-      // Handle any errors that occur
       setState(() {
         error = 'Error: $e';
         isLoading = false;
@@ -80,376 +120,430 @@ class _DashboardState extends State<Dashboard> {
     super.initState();
     loadImagePath();
     fetchData("Bhabani@CTC");
+    fetchMyLeaveRequests();
+    Future.delayed(const Duration(seconds: 3), () {
+      setState(() => _showDesignerCredit = false);
+    });
   }
-  Widget _buildCard(String imagePath, String title, VoidCallback onTap, int index) {
-    return FadeInUp(
-      duration: Duration(milliseconds: 500 + (index * 100)),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.5),
-                spreadRadius: 2,
-                blurRadius: 5,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(11),
-                topRight: Radius.circular(11),
-                bottomLeft: Radius.circular(11),
-                bottomRight: Radius.circular(11),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    imagePath,
-                    height: 44,
-                    width: 44,
+
+  Widget _buildCard(
+      String imagePath, String title, VoidCallback onTap, int index) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardSize = constraints.maxWidth;
+        return FadeInUp(
+          duration: Duration(milliseconds: 500 + (index * 100)),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
+              margin: EdgeInsets.all(cardSize * 0.02),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: cardSize * 0.4,
+                    height: cardSize * 0.4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        imagePath,
+                        width: cardSize * 0.3,
+                        height: cardSize * 0.3,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: cardSize * 0.05),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: cardSize * 0.05),
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: cardSize * 0.06,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
-  @override
 
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFDCD8CD),
-      body: NestedScrollView(
-        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-          return <Widget>[
-            SliverAppBar(
-              expandedHeight: 200.0,
-              floating: false,
-              pinned: true,
-              backgroundColor: const Color(0xFF0A0707),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
-              // title: const Text(
-              //   'HOME',
-              //   style: TextStyle(
-              //     fontWeight: FontWeight.bold,
-              //     color: Colors.black,
-              //     fontSize: 26,
-              //   ),
-              // ),
-             flexibleSpace: FlexibleSpaceBar(
-  background: BannerDisplay(), // Use our static banner widget
-),
-              actions: <Widget>[
-                Container(
-                  margin: const EdgeInsets.only(right: 12.0),
-                  child: Row(
-                    children: <Widget>[
-                      Row(
-                        children: [
-                          Card(
-                            color: const Color(0xFF2E2045),
-                            elevation: 3.0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20.0),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '${data != null && data!.containsKey('COUNT') ? data!['COUNT'] : '0'}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Icon(
-                                    Icons.flag,
-                                    color: Colors.redAccent,
-                                    size: 26,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                      ),
-                      // GestureDetector(
-                      //   onTap: () {
-                      //     Navigator.push(
-                      //       context,
-                      //       MaterialPageRoute(
-                      //         builder: (context) => const Profile(),
-                      //       ),
-                      //     );
-                      //   },
-                      //   child: CircleAvatar(
-                      //     radius: 20,
-                      //     backgroundColor: const Color(0xFF592D52),
-                      //     backgroundImage: _pickedImage == null
-                      //         ? const AssetImage('assets/images/technocart.png')
-                      //         : FileImage(File(_pickedImage!.path))
-                      //     as ImageProvider<Object>?,
-                      //   ),
-                      // ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ];
-        },
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth < 600) {
-              return _buildSmallScreenView(context);
-            } else {
-              return _buildLargeScreenView(context);
-            }
-          },
-        ),
-      ),
-    );
-  }
-  final String url = "https://creativecollege.in/MIS/MIS/Note%20and%20assignment%20project%201/index.php";
+  final String url =
+      "https://creativecollege.in/MIS/MIS/Note%20and%20assignment%20project%201/index.php";
 
   void _launchURL() async {
-    Uri uri = Uri.parse(url);
+    final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       throw 'Could not launch $url';
     }
   }
 
-  Widget _buildSmallScreenView(BuildContext context) {
-    return Stack( // Wrap GridView in a Stack
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12.0),
-            child: GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            expandedHeight: MediaQuery.of(context).size.height * 0.2, // Responsive height
+            pinned: true,
+            backgroundColor: Colors.black,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                // ... (Your switch case code for building cards)
-                switch (index) {
-                  case 0:
-                    return _buildCard('assets/icons/contact.png', 'Student Contact Record', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const ContactPrev()));
-                    }, index);
-                  case 1:
-                    return _buildCard('assets/icons/work.png', 'Work Details', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsMobile()));
-                    }, index);
-                  case 2:
-                    return _buildCard('assets/icons/task.png', 'Task Management', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Task_mgmt()));
-                    }, index);
-                  case 3:
-                    return _buildCard('assets/icons/self attendance.png', 'Self Attendance', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Staff_Attendanance()));
-                    }, index);
-                  case 4:
-                    return _buildCard('assets/icons/report.png', 'Report', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Report_upload()));
-                    }, index);
-                  case 5:
-                    return _buildCard('assets/icons/add task.png', 'Add Task', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Mob_Add_Task()));
-                    }, index);
-                  case 6:
-                    return _buildCard('assets/icons/apply for leave.png', 'Apply Leave', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Leave_Page()));
-                    }, index);
-                  case 7:
-                    return _buildCard('assets/icons/student attendance.png', 'Student Attendance', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => Attendance()));
-                    }, index);
-                  case 8:
-                    return _buildCard('assets/icons/feedback.png', 'Feedback', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherFeedbackpage()));
-                    }, index);
-                  case 9:
-                    return _buildCard('assets/icons/mis.png', 'Notes and Assignment', () {
-                      _launchURL();
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => WebViewScreen()));
-                    }, index);
-                  default:
-                    return Container();
-                }
-              },
             ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: BannerDisplay(),
+            ),
+            actions: [
+              Container(
+                margin: const EdgeInsets.only(right: 16.0),
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 300),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${data != null && data!.containsKey('COUNT') ? data!['COUNT'] : '0'}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Icon(Icons.flag, color: Colors.redAccent, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        Align( // Align the animated text at the bottom center
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: AnimatedSwitcher( // Use AnimatedSwitcher for fade out
-              duration: const Duration(milliseconds: 1500),
-              child: _buildAnimatedText(), // Build the animated text widget
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+        ],
+        body: LayoutBuilder(
+          builder: (context, constraints) => Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(constraints.maxWidth * 0.03),
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: constraints.maxWidth < 600 ? 2 : 4,
+                    mainAxisSpacing: constraints.maxWidth * 0.03,
+                    crossAxisSpacing: constraints.maxWidth * 0.03,
+                    childAspectRatio: 1.0,
+                  ),
+                  itemCount: 10,
+                  itemBuilder: (context, index) {
+                    switch (index) {
+                      case 0:
+                        return _buildCard(
+                          'assets/icons/contact.png',
+                          'Student Contact Record',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const ContactPrev()),
+                          ),
+                          index,
+                        );
+                      case 1:
+                        return _buildCard(
+                          'assets/icons/work.png',
+                          'Work Details',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => DetailsMobile()),
+                          ),
+                          index,
+                        );
+                      case 2:
+                        return _buildCard(
+                          'assets/icons/task.png',
+                          'Task Management',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Task_mgmt()),
+                          ),
+                          index,
+                        );
+                      case 3:
+                        return _buildCard(
+                          'assets/icons/self attendance.png',
+                          'Self Attendance',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Staff_Attendance()),
+                          ),
+                          index,
+                        );
+                      case 4:
+                        return _buildCard(
+                          'assets/icons/report.png',
+                          'Report',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Report_upload()),
+                          ),
+                          index,
+                        );
+                      case 5:
+                        return _buildCard(
+                          'assets/icons/add task.png',
+                          'Add Task',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Mob_Add_Task()),
+                          ),
+                          index,
+                        );
+                      case 6:
+                        return _buildCard(
+                          'assets/icons/apply for leave.png',
+                          'Apply Leave',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Leave_Page()),
+                          ),
+                          index,
+                        );
+                      case 7:
+                        return _buildCard(
+                          'assets/icons/student attendance.png',
+                          'Student Attendance',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Attendance()),
+                          ),
+                          index,
+                        );
+                      case 8:
+                        return _buildCard(
+                          'assets/icons/feedback.png',
+                          'Feedback',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => TeacherFeedbackpage()),
+                          ),
+                          index,
+                        );
+                    // In your dashboard.dart, update case 9:
+                      case 9:
+                        return _buildCard(
+                          'assets/icons/mis.png',
+                          'Notes & Assignment',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MIS(
+                                isDarkMode: _isDarkMode, // Your state variable
+                                onToggleTheme: _toggleTheme, // Your toggle function
+                              ),
+                            ),
+                          ),
+                          index,
+                        );
+                      default:
+                        return Container();
+                    }
+                  },
+                ),
+              ),
 
-  Widget _buildAnimatedText() {
-    return FutureBuilder(
-      future: Future.delayed(const Duration(milliseconds: 1500)), // Delay for 1.5 seconds
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return const SizedBox.shrink(); // Hide the text after the delay
-        } else {
-          return DefaultTextStyle(
-            style: const TextStyle(
-              fontSize: 14.0,
-              color: Colors.black,
-              fontWeight: FontWeight.normal,
-            ),
-            child: AnimatedTextKit(
-              animatedTexts: [
-                TypewriterAnimatedText('Designed by Ananta k.swain'),
-              ],
-              isRepeatingAnimation: false,
-              totalRepeatCount: 1,
-            ),
-          );
-        }
-      },
-    );
-  }
+              if (_showDesignerCredit)
+                Positioned(
+                  bottom: 20,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: AnimatedOpacity(
+                      duration: Duration(milliseconds: 500),
+                      opacity: 1.0,
+                      child: Container(
+                        padding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Designed by Ananta k.swain',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
-  
-
-  Widget _buildLargeScreenView(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 800,
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20.0),
-            topRight: Radius.circular(5.0),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: GridView.builder( // Changed to GridView.builder
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 20,
-            ),
-            itemCount: 10,
-            itemBuilder: (context, index) {
-              switch (index) {
-                case 0:
-                  return _buildCard('assets/icons/contact.png', 'Student Contact Record', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => ContactPrev()));
-                  }, index);
-                case 1:
-                  return _buildCard('assets/icons/work.png', 'Work Details', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsMobile()));
-                  }, index);
-                case 2:
-                  return _buildCard('assets/icons/task.png', 'Task Management', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => Task_mgmt()));
-                  }, index);
-                case 3:
-                  return _buildCard('assets/icons/self attendance.png', 'Self Attendance', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => Staff_Attendanance()));
-                  }, index);
-                case 4:
-                  return _buildCard('assets/icons/report.png', 'Report', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => Report_upload()));
-                  }, index);
-                case 5:
-                  return _buildCard('assets/icons/add task.png', 'Add Task', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => Mob_Add_Task()));
-                  }, index);
-                case 6:
-                  return _buildCard('assets/icons/apply for leave.png', 'Apply Leave', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => Leave_Page()));
-                  }, index);
-                case 7:
-                  return _buildCard('assets/icons/student attendance.png', 'Student Attendance', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => StudentAttendance()));
-                  }, index);
-                case 8:
-                  return _buildCard('assets/icons/feedback.png', 'Feedback', () {
-                     Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherFeedbackpage()));
-                  }, index);
-                case 9:
-                  return _buildCard('assets/icons/mis.png', 'Notes & Assignment', () {
-                    _launchURL();
-                    //  Navigator.push(context, MaterialPageRoute(builder: (context) => WebViewScreen()));
-                  }, index);
-                default:
-                  return Container();
-              }
-            },
+              if (_showLeaveStatusPopup && _latestLeaveStatus != null)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: FadeInUp(
+                        child: AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          title: Text(
+                            'Leave Status',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Your leave request has been ${_latestLeaveStatus!['Status']}',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              SizedBox(height: 10),
+                              Text(
+                                'Reason: ${_latestLeaveStatus!['Reason']}',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                              Text(
+                                'Dates: ${_latestLeaveStatus!['Start_Date']} to ${_latestLeaveStatus!['Last_Date']}',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () async {
+                                final prefs = await SharedPreferences.getInstance();
+                                // Mark this popup as seen
+                                await prefs.setBool(_hasSeenLeavePopupKey, true);
+                                if (_latestStatusKey != null) {
+                                  await prefs.setString(
+                                      _lastSeenLeaveKey, _latestStatusKey!);
+                                }
+                                setState(() {
+                                  _showLeaveStatusPopup = false;
+                                });
+                              },
+                              child: Text('OK'),
+                            ),
+                            if (_latestLeaveStatus!['Status'] == 'Rejected')
+                              TextButton(
+                                onPressed: () async {
+                                  final prefs = await SharedPreferences.getInstance();
+                                  // Mark this popup as seen
+                                  await prefs.setBool(_hasSeenLeavePopupKey, true);
+                                  if (_latestStatusKey != null) {
+                                    await prefs.setString(
+                                        _lastSeenLeaveKey, _latestStatusKey!);
+                                  }
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => Leave_Page()),
+                                  ).then((_) {
+                                    setState(() {
+                                      _showLeaveStatusPopup = false;
+                                    });
+                                  });
+                                },
+                                child: Text(
+                                  'REAPPLY',
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
 class BannerDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Get current day (0=Sunday, 1=Monday, ..., 6=Saturday)
     final dayOfWeek = DateTime.now().weekday;
-    
-    // Map days to different banners
     final bannerImages = [
-      'assets/images/banner1.png', // Sunday
-      'assets/images/banner2.jpg', // Monday
-      'assets/images/banner3.jpg', // Tuesday
-      'assets/images/banner4.png', // Wednesday
-      'assets/images/banner5.png', // Thursday
-      'assets/images/banner6.png', // Friday
-      'assets/images/banner7.jpg', // Saturday
+      'assets/images/banner1.png',
+      'assets/images/banner2.jpg',
+      'assets/images/banner3.jpg',
+      'assets/images/banner4.png',
+      'assets/images/banner5.png',
+      'assets/images/banner6.png',
+      'assets/images/banner7.jpg',
     ];
-    
-    // Ensure we don't go out of bounds
     final bannerIndex = dayOfWeek % bannerImages.length;
-    
-    return Image.asset(
-      bannerImages[bannerIndex],
-      fit: BoxFit.cover,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Adjust banner height based on screen size
+        final bannerHeight = constraints.maxHeight;
+        final bannerWidth = constraints.maxWidth;
+
+        return Container(
+          height: bannerHeight,
+          width: bannerWidth,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(bannerImages[bannerIndex]),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withOpacity(0.7),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -4,130 +4,220 @@ import 'dart:convert';
 import 'package:animate_do/animate_do.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class Staff_Attendanance extends StatefulWidget {
+class Staff_Attendance extends StatefulWidget {
   @override
-  State<Staff_Attendanance> createState() => _StaffListState();
+  State<Staff_Attendance> createState() => _StaffListState();
 }
 
-class _StaffListState extends State<Staff_Attendanance> {
-  List<dynamic> items = [];
+class _StaffListState extends State<Staff_Attendance> {
+  List<dynamic> attendanceItems = [];
   DateTime? selectedDate;
   int totalPresent = 0;
-  String name = '';
+  String name = 'Staff';
+  String userID = '';
+  bool isLoading = false;
+  String errorMessage = '';
+  bool hasError = false;
 
   final List<String> months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
   String selectedMonth = '';
-  Future<String> initializeData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String userID = prefs.getString('userID') ?? ''.trim();
+
+  @override
+  void initState() {
+    super.initState();
+    selectedDate = DateTime.now();
+    selectedMonth = months[selectedDate!.month - 1];
+    _initializeUserData();
+  }
+
+  Future<void> _initializeUserData() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+      hasError = false;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      userID = prefs.getString('userID') ?? '';
+
+      if (userID.isEmpty) {
+        throw Exception('User ID not found in local storage');
+      }
+
+      await _fetchProfileData();
+      await _fetchAttendanceData();
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error: ${e.toString()}';
+        hasError = true;
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchProfileData() async {
     final response = await http.get(
       Uri.parse('https://creativecollege.in/Flutter/Profile.php?id=$userID'),
     );
 
     if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body);
-
-      if (jsonData is List && jsonData.isNotEmpty) {
-        final firstElement = jsonData[0];
+      final data = json.decode(response.body);
+      if (data is List && data.isNotEmpty) {
         setState(() {
-          name = firstElement['name'];
+          name = data[0]['name']?.toString()?.trim() ?? 'Staff';
         });
-        name = firstElement['name'].toString().trim();
-        return name;
-      } else {
-        setState(() {
-          name = 'Data not found';
-        });
-        return 'Data not found';
       }
     } else {
-      throw Exception('Failed to load data');
+      throw Exception('Failed to load profile data');
     }
   }
 
-  Future<void> fetchDataMonthly(int year, int month) async {
-    String result = await initializeData();
+  Future<void> _fetchAttendanceData() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+      hasError = false;
+      attendanceItems = [];
+      totalPresent = 0;
+    });
 
-    var url = Uri.parse(
-        'https://olivedrab-chicken-455066.hostingersite.com/Attendanance/staff_Attendance.php?id=${result}&filter=Monthly&year=$year&month=$month');
+    try {
+      final monthString = selectedDate!.month.toString().padLeft(2, '0');
+      final year = selectedDate!.year;
 
-    var response = await http.get(url);
+      final url = Uri.parse(
+          "https://creativecollege.in/Attendance/att_report_api.php?user=${Uri.encodeComponent(userID)}&selectedMonth=$monthString&selectedYear=$year"
+      );
 
-    if (response.statusCode == 200) {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        setState(() {
+          attendanceItems = data;
+          totalPresent = data.length;
+        });
+      } else {
+        throw Exception("Failed to load attendance: ${response.statusCode}");
+      }
+    } catch (e) {
       setState(() {
-        items = json.decode(response.body);
-        calculateTotalPresent();
+        errorMessage = 'Failed to load attendance data: ${e.toString()}';
+        hasError = true;
       });
-    } else {
-      print('Failed to load data');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-
-    selectedDate = DateTime.now();
-    fetchDataMonthly(selectedDate!.year, selectedDate!.month);
-    selectedMonth = months[selectedDate!.month - 1];
-  }
-
-  void _selectDate(BuildContext context) async {
-    DateTime? picked = await showDatePicker(
+  Future<void> _selectDate(BuildContext context) async {
+    final picked = await showDatePicker(
       context: context,
       initialDate: selectedDate!,
       firstDate: DateTime(2022),
-      lastDate: DateTime(2030, 12, 31),
+      lastDate: DateTime.now(),
     );
+
     if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
         selectedMonth = months[selectedDate!.month - 1];
       });
-
-      fetchDataMonthly(selectedDate!.year, selectedDate!.month);
+      await _fetchAttendanceData();
     }
   }
 
-  void calculateTotalPresent() {
-    totalPresent = 0;
-    for (var item in items) {
-      int monthFromData = int.parse(item['DATE'].split('-')[1]);
-      if (monthFromData == selectedDate!.month) {
-        totalPresent++;
-      }
+  Widget _buildAttendanceList() {
+    if (isLoading) {
+      return Center(child: CircularProgressIndicator());
     }
+
+    if (hasError) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            errorMessage,
+            style: TextStyle(color: Colors.red, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    if (attendanceItems.isEmpty) {
+      return Center(
+        child: Text(
+          'No attendance records found for $selectedMonth',
+          style: TextStyle(fontSize: 16),
+        ),
+      );
+    }
+
+    return FadeInUp(
+      duration: Duration(milliseconds: 1000),
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        itemCount: attendanceItems.length,
+        itemBuilder: (context, index) {
+          final item = attendanceItems[index];
+          final checkOutTime = item['check_out']?.toString() ?? 'Not checked out';
+          final isCheckedOut = checkOutTime != '00:00:00' && checkOutTime != 'Not checked out';
+
+          return Column(
+            children: [
+              ListTile(
+                title: Text('Date: ${item['date'] ?? 'N/A'}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Check In: ${item['check_in'] ?? 'N/A'}'),
+                    Text('Check Out: $checkOutTime'),
+                  ],
+                ),
+                trailing: Text(
+                  isCheckedOut ? 'Present' : 'Checked In',
+                  style: TextStyle(
+                    color: isCheckedOut ? Colors.blue : Colors.orange,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Divider(color: Colors.black, thickness: 1),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const _color1 = Colors.black;
-    const bgColor = Colors.grey;
-
     return Scaffold(
-      backgroundColor: bgColor[200],
+      backgroundColor: Colors.grey[200],
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
             expandedHeight: 100.0,
-            backgroundColor: _color1,
+            backgroundColor: Colors.black,
             floating: false,
             pinned: true,
-            shape: const RoundedRectangleBorder(
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
@@ -145,93 +235,41 @@ class _StaffListState extends State<Staff_Attendanance> {
               centerTitle: true,
             ),
             actions: <Widget>[
-              Container(
-                margin: EdgeInsets.only(right: 10.0),
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Row(
-                    children: [
-                      Text(
-                        '${totalPresent}',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 19),
+              Padding(
+                padding: EdgeInsets.only(right: 16.0),
+                child: Row(
+                  children: [
+                    Text(
+                      '$totalPresent',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 19
                       ),
-                      SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () {
-                          _selectDate(context);
-                        },
-                        icon: Icon(
-                          Icons.calendar_month,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      SizedBox(width: 8)
-                    ],
-                  ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.calendar_month, color: Colors.white),
+                      onPressed: () => _selectDate(context),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           SliverToBoxAdapter(
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                FadeInUp(
-                  duration: const Duration(milliseconds: 1000),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: items.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      int monthFromData =
-                      int.parse(items[index]['DATE'].split('-')[1]);
-
-                      if (monthFromData == selectedDate!.month) {
-                        return Column(
-                          children: [
-                            ListTile(
-                              title: Text('Date: ${items[index]['DATE']}'),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                      'Check In: ${items[index]['CHECK_IN_TIME']}'),
-                                  Text(
-                                      'Check Out: ${items[index]['CHECK_OUT_TIME']}'),
-                                ],
-                              ),
-                              trailing: Text(
-                                'Present',
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 20),
-                              child: Divider(
-                                color: Colors.black,
-                                thickness: 1,
-                              ),
-                            ),
-                          ],
-                        );
-                      } else {
-                        return Container();
-                      }
-                    },
-                  ),
-                ),
-              ],
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: _buildAttendanceList(),
             ),
           ),
         ],
       ),
+      floatingActionButton: hasError
+          ? FloatingActionButton(
+        child: Icon(Icons.refresh),
+        onPressed: _initializeUserData,
+      )
+          : null,
     );
   }
 }

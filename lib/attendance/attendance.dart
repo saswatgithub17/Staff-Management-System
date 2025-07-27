@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -10,22 +12,51 @@ class Attendance extends StatefulWidget {
 
 class _AttendanceState extends State<Attendance> {
   String selectedCourse = 'BBA';
-  String selectedSemesterGroup = '1st';
+  String selectedSemester = '1st';
   Map<String, dynamic>? allData;
   Map<String, dynamic>? filteredData;
   DateTime currentDate = DateTime.now();
   Map<String, Map<String, dynamic>> attendanceStatus = {};
+  bool isLoading = false;
+
+  // Semester groups mapping
+  final Map<String, List<String>> semesterGroups = {
+    '1st': ['1st'],
+    '2nd': ['2nd'],
+    '3rd': ['3rd'],
+    '4th': ['4th'],
+    '5th': ['5th'],
+    '6th': ['6th'],
+    '7th': ['7th'],
+    '8th': ['8th'],
+  };
 
   @override
   void initState() {
     super.initState();
-    fetchData().then((data) {
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final data = await fetchData();
       setState(() {
         allData = data;
-        filteredData = _filterData(data, selectedCourse, selectedSemesterGroup);
+        filteredData = _filterData(data, selectedCourse, selectedSemester);
         _initializeAttendanceStatus(filteredData);
       });
-    });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load data: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<Map<String, dynamic>> fetchData() async {
@@ -33,61 +64,30 @@ class _AttendanceState extends State<Attendance> {
         'https://creativecollege.in/Flutter/New_attendance/Fetch_student_data.php'));
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return data;
+      return json.decode(response.body);
     } else {
-      throw Exception('Failed to load data');
+      throw Exception('Failed to load data. Status code: ${response.statusCode}');
     }
   }
 
-    Map<String, dynamic> _filterData(
-      Map<String, dynamic> data, String course, String semesterGroup) {
+  Map<String, dynamic> _filterData(
+      Map<String, dynamic> data, String course, String semester) {
     final filtered = <String, dynamic>{};
+    final semesterList = semesterGroups[semester] ?? [];
+
     data.forEach((key, records) {
       final sortedRecords = (records as List<dynamic>)
-          .where((record) {
-            final semester = record['SEMESTER'];
-            if (semesterGroup == '1st') {
-              return ['1st', '2nd'].contains(semester) &&
-                  record['COURSE'] == course;
-            } else if (semesterGroup == '2nd') {
-              return ['3rd', '4th'].contains(semester) &&
-                  record['COURSE'] == course;
-            } else if (semesterGroup == '3rd') {
-              return ['5th', '6th'].contains(semester) &&
-                  record['COURSE'] == course;
-            }
-            return false;
-          })
+          .where((record) => semesterList.contains(record['SEMESTER']) &&
+          record['COURSE'] == course)
           .toList()
-          ..sort((a, b) => a['NAME'].compareTo(b['NAME'])); // Sorting by name A-Z
+        ..sort((a, b) => a['NAME'].compareTo(b['NAME']));
 
-      filtered[key] = sortedRecords;
+      if (sortedRecords.isNotEmpty) {
+        filtered[key] = sortedRecords;
+      }
     });
     return filtered;
   }
-
-  // Map<String, dynamic> _filterData(
-  //     Map<String, dynamic> data, String course, String semesterGroup) {
-  //   final filtered = <String, dynamic>{};
-  //   data.forEach((key, records) {
-  //     filtered[key] = (records as List<dynamic>).where((record) {
-  //       final semester = record['SEMESTER'];
-  //       if (semesterGroup == '1st') {
-  //         return ['1st', '2nd'].contains(semester) &&
-  //             record['COURSE'] == course;
-  //       } else if (semesterGroup == '2nd') {
-  //         return ['3rd', '4th'].contains(semester) &&
-  //             record['COURSE'] == course;
-  //       } else if (semesterGroup == '3rd') {
-  //         return ['5th', '6th'].contains(semester) &&
-  //             record['COURSE'] == course;
-  //       }
-  //       return false;
-  //     }).toList();
-  //   });
-  //   return filtered;
-  // }
 
   void _initializeAttendanceStatus(Map<String, dynamic>? data) {
     final status = <String, Map<String, dynamic>>{};
@@ -129,59 +129,74 @@ class _AttendanceState extends State<Attendance> {
   }
 
   Future<void> _submitAttendance() async {
-    if (attendanceStatus.isEmpty) return;
+    if (attendanceStatus.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No students to submit attendance for')),
+      );
+      return;
+    }
 
-    final url = Uri.parse(
-      'https://creativecollege.in/Flutter/New_attendance/attendance.php',
-    );
-
-    final List<Map<String, dynamic>> attendanceList =
-    attendanceStatus.values.map((student) {
-      return {
-        'id': student['id'],
-        'present': student['present'] ? 1 : 0,
-        'date': DateFormat('yyyy-MM-dd').format(currentDate),
-        'semester_group': selectedSemesterGroup,
-        'course': selectedCourse,
-      };
-    }).toList();
+    setState(() {
+      isLoading = true;
+    });
 
     try {
+      final url = Uri.parse(
+          'https://creativecollege.in/Flutter/New_attendance/attendance.php');
+
+      final List<Map<String, dynamic>> attendanceList =
+      attendanceStatus.values.map((student) {
+        return {
+          'id': student['id'],
+          'present': student['present'] ? 1 : 0,
+          'date': DateFormat('yyyy-MM-dd').format(currentDate),
+          'semester_group': selectedSemester,  // Changed from 'semester' to 'semester_group'
+          'course': selectedCourse,
+        };
+      }).toList();
+
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: json.encode(attendanceList),
-      );
+      ).timeout(Duration(seconds: 15));
 
       final responseBody = json.decode(response.body);
 
       if (response.statusCode == 200) {
         if (responseBody['status'] == 'success') {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content:
-            Text(responseBody['message'] ?? 'Attendance submitted'),
-          ));
-        } else if (responseBody['status'] == 'error') {
-          final errorMessage = responseBody['message'];
-          if (errorMessage is List) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(errorMessage.join('\n')),
-            ));
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(errorMessage ?? 'Failed to submit'),
-            ));
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Attendance submitted successfully!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(responseBody['message'] ?? 'Error submitting')),
+          );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed: HTTP ${response.statusCode}'),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Server error: ${response.statusCode}')),
+        );
       }
+    } on SocketException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Network error: Please check your internet connection')),
+      );
+    } on TimeoutException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Request timeout: Please try again')),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error submitting'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -189,7 +204,7 @@ class _AttendanceState extends State<Attendance> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black, // Black theme
+        backgroundColor: Colors.black,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(20),
@@ -205,144 +220,179 @@ class _AttendanceState extends State<Attendance> {
           ),
         ),
       ),
-      backgroundColor: Colors.white,
-      body: Column(
+      body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Text(
-                //   "Date: ${DateFormat('yyyy-MM-dd').format(currentDate)}",
-                //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                // ),
-                SizedBox(width: 10),
-                ElevatedButton(
+          Column(
+            children: [
+              // Date Picker
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: ElevatedButton(
                   onPressed: () => _selectDate(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  child: Text("Date: ${DateFormat('yyyy-MM-dd').format(currentDate)}",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  child: Text(
+                    DateFormat('dd-MMM-yyyy').format(currentDate),
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
-              ],
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildFilterButton('BBA', selectedCourse == 'BBA'),
-              _buildFilterButton('BSC-C', selectedCourse == 'BSC-C'),
-              _buildFilterButton('BCA', selectedCourse == 'BCA'),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildFilterButton('1st', selectedSemesterGroup == '1st'),
-              _buildFilterButton('2nd', selectedSemesterGroup == '2nd'),
-              _buildFilterButton('3rd', selectedSemesterGroup == '3rd'),
-            ],
-          ),
-          Expanded(
-            child: filteredData == null
-                ? Center(child: CircularProgressIndicator(color: Colors.black))
-                : filteredData!.isEmpty
-                ? Center(child: Text('No data available'))
-                : ListView(
-              children: filteredData!.values
-                  .expand((records) => records)
-                  .map<Widget>((record) {
-                final id = record['ID'];
-                final name = record['NAME'];
-                final isPresent =
-                    attendanceStatus[id]?['present'] ?? false;
-
-                return Card(
-                  margin: EdgeInsets.symmetric(
-                      vertical: 8, horizontal: 16),
-                  elevation: 4,
-                  child: Column(
-                    children: [
-                      ListTile(
-                        title: Text(
-                          '$name',
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black),
-                        ),
-                        subtitle: Text(
-                          'ID: $id',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                        trailing: Checkbox(
-                          value: isPresent,
-                          onChanged: (bool? value) {
-                            if (value != null) {
-                              _toggleAttendance(id);
-                            }
-                          },
-                          activeColor: Colors.black,
-                          checkColor: Colors.white,
-                        ),
-                      ),
-                      Divider(thickness: 1, color: Colors.grey[700]),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: _submitAttendance,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
-              child: Text('Submit'),
-            ),
+
+              // Course Selection
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['BBA', 'BSC-C', 'BCA'].map((course) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: ChoiceChip(
+                          label: Text(course),
+                          selected: selectedCourse == course,
+                          onSelected: (selected) {
+                            setState(() {
+                              selectedCourse = course;
+                              filteredData = _filterData(
+                                  allData ?? {}, selectedCourse, selectedSemester);
+                              _initializeAttendanceStatus(filteredData);
+                            });
+                          },
+                          selectedColor: Colors.blue,
+                          labelStyle: TextStyle(
+                            color: selectedCourse == course
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              // Semester Selection
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: semesterGroups.keys.map((semester) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: ChoiceChip(
+                          label: Text(semester),
+                          selected: selectedSemester == semester,
+                          onSelected: (selected) {
+                            setState(() {
+                              selectedSemester = semester;
+                              filteredData = _filterData(
+                                  allData ?? {}, selectedCourse, selectedSemester);
+                              _initializeAttendanceStatus(filteredData);
+                            });
+                          },
+                          selectedColor: Colors.blue,
+                          labelStyle: TextStyle(
+                            color: selectedSemester == semester
+                                ? Colors.white
+                                : Colors.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              // Student List
+              Expanded(
+                child: isLoading && filteredData == null
+                    ? Center(child: CircularProgressIndicator(color: Colors.black))
+                    : filteredData == null
+                    ? Center(child: Text('Data not loaded'))
+                    : filteredData!.isEmpty
+                    ? Center(child: Text('No students found for selected criteria'))
+                    : ListView.builder(
+                  itemCount: filteredData!.values
+                      .expand((e) => e)
+                      .length,
+                  itemBuilder: (context, index) {
+                    final record = filteredData!.values
+                        .expand((e) => e)
+                        .elementAt(index);
+                    final id = record['ID'];
+                    final name = record['NAME'];
+                    final isPresent =
+                        attendanceStatus[id]?['present'] ?? false;
+
+                    return Card(
+                      margin: EdgeInsets.symmetric(
+                          vertical: 4, horizontal: 8),
+                      child: CheckboxListTile(
+                        title: Text(
+                          name,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('ID: $id'),
+                        value: isPresent,
+                        onChanged: (bool? value) {
+                          if (value != null) {
+                            _toggleAttendance(id);
+                          }
+                        },
+                        secondary: CircleAvatar(
+                          backgroundColor: Colors.black,
+                          child: Text(
+                            name[0],
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        activeColor: Colors.black,
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Submit Button
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : _submitAttendance,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      padding: EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: isLoading
+                        ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                        : Text(
+                      'SUBMIT ATTENDANCE',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (isLoading)
+            Center(
+              child: CircularProgressIndicator(color: Colors.black),
+            ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFilterButton(String text, bool isSelected) {
-    return ElevatedButton(
-        onPressed: () {
-      setState(() {
-        if (text == 'BBA' || text == 'BSC-C' || text == 'BCA') {
-          selectedCourse = text;
-          filteredData = _filterData(
-              allData ?? {}, selectedCourse, selectedSemesterGroup);
-          _initializeAttendanceStatus(filteredData);
-        } else {
-          selectedSemesterGroup = text;
-          filteredData = _filterData(
-              allData ?? {}, selectedCourse, selectedSemesterGroup);
-          _initializeAttendanceStatus(filteredData);
-        }
-      });
-        },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.lightBlueAccent : Colors.black,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      ),
-      child: Text(text),
     );
   }
 }
