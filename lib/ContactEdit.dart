@@ -290,13 +290,10 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                             controller: fmob,
                             keyboardType: TextInputType.phone,
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter father mobile';
-                              }
-                              if (value.length != 10) {
+                              if (value != null && value.isNotEmpty && value.length != 10) {
                                 return 'Enter valid 10-digit number';
                               }
-                              return null;
+                                return null; // Allow empty
                             },
                             decoration: InputDecoration(
                               border: InputBorder.none,
@@ -313,13 +310,10 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                             controller: mmob,
                             keyboardType: TextInputType.phone,
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter mother mobile';
-                              }
-                              if (value.length != 10) {
+                              if (value != null && value.isNotEmpty && value.length != 10) {
                                 return 'Enter valid 10-digit number';
                               }
-                              return null;
+                              return null; // Allow empty
                             },
                             decoration: InputDecoration(
                               border: InputBorder.none,
