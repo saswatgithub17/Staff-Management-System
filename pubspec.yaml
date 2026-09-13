@@ -44,7 +44,7 @@ dependencies:
   flutter_inappwebview: ^6.0.0
   webview_flutter_android: ^4.3.4
   connectivity_plus: ^3.0.3
-  google_fonts: ^6.2.1
+  google_fonts: ^8.0.2
   flutter_phone_direct_caller: ^2.2.1
 
 

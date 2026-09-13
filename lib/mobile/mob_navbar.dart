@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:staff_task_management/Dashboard.dart';
 import 'package:staff_task_management/mobile/mob_Profile.dart';
-import 'package:staff_task_management/scanner_page.dart';
 import 'package:staff_task_management/mobile/ImageList.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -15,10 +14,9 @@ class NavPage extends StatefulWidget {
 }
 
 class _NavPageState extends State<NavPage> {
-  int _currentIndex = 1;
+  int _currentIndex = 0;
   late String pickedImagePath;
   final List<Widget> _pages = [
-    QrCodeScanner(),
     Dashboard(),
     ImageList(),
     const Profile(),
@@ -89,34 +87,26 @@ class _NavPageState extends State<NavPage> {
             items: [
               BottomNavigationBarItem(
                 icon: _currentIndex == 0
-                    ? const Icon(Icons.qr_code, color: Colors.black)
-                    : const Icon(Icons.qr_code, color: Colors.grey),
-                label: 'Attendance',
-                backgroundColor: Colors.white, // Set background to white
-                activeIcon: const Icon(Icons.qr_code, color: Colors.black),
-              ),
-              BottomNavigationBarItem(
-                icon: _currentIndex == 1
                     ? const Icon(Icons.dashboard, color: Colors.black)
                     : const Icon(Icons.dashboard, color: Colors.grey),
                 label: 'DashBoard',
-                backgroundColor: Colors.white, // Set background to white
+                backgroundColor: Colors.white,
                 activeIcon: const Icon(Icons.dashboard, color: Colors.black),
               ),
               BottomNavigationBarItem(
-                icon: _currentIndex == 2
+                icon: _currentIndex == 1
                     ? const Icon(Icons.note_sharp, color: Colors.black)
                     : const Icon(Icons.note_sharp, color: Colors.grey),
                 label: 'Notice',
-                backgroundColor: Colors.white, // Set background to white
+                backgroundColor: Colors.white,
                 activeIcon: const Icon(Icons.note_sharp, color: Colors.black),
               ),
               BottomNavigationBarItem(
-                icon: _currentIndex == 3
+                icon: _currentIndex == 2
                     ? const Icon(Icons.person_outline, color: Colors.black)
                     : const Icon(Icons.person_outline, color: Colors.grey),
                 label: 'Profile',
-                backgroundColor: Colors.white, // Set background to white
+                backgroundColor: Colors.white,
                 activeIcon: const Icon(Icons.person_outline, color: Colors.black),
               ),
             ],

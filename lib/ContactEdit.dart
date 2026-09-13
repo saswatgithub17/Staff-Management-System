@@ -60,6 +60,17 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
     super.dispose();
   }
 
+  // Returns a map of the updated fields so the parent can refresh immediately
+  Map<String, String> _getUpdatedData() {
+    return {
+      'course': course.text.trim(),
+      'sem': sem.text.trim(),
+      'smob': smob.text.trim(),
+      'fmob': fmob.text.trim(),
+      'mmob': mmob.text.trim(),
+    };
+  }
+
   Future<void> _Contact_Edit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -92,7 +103,8 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                 backgroundColor: Colors.green,
                 textColor: Colors.white,
               );
-              Navigator.pop(context, true);
+              // ✅ Pop with updated data so parent refreshes immediately
+              Navigator.pop(context, _getUpdatedData());
             } else {
               throw Exception(responseData['message'] ?? 'Update failed');
             }
@@ -104,7 +116,8 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
               backgroundColor: Colors.green,
               textColor: Colors.white,
             );
-            Navigator.pop(context, true);
+            // ✅ Pop with updated data so parent refreshes immediately
+            Navigator.pop(context, _getUpdatedData());
           }
         } else {
           throw Exception('Server error: ${response.statusCode}');
@@ -118,7 +131,8 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
             backgroundColor: Colors.green,
             textColor: Colors.white,
           );
-          Navigator.pop(context, true);
+          // ✅ Pop with updated data so parent refreshes immediately
+          Navigator.pop(context, _getUpdatedData());
         } else {
           throw Exception('Failed to update contact: ${response.body}');
         }
@@ -136,6 +150,7 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
       });
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -164,8 +179,8 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                       border: Border.all(
                         color: const Color.fromRGBO(143, 148, 251, 1),
                       ),
-                      boxShadow: [
-                        const BoxShadow(
+                      boxShadow: const [
+                        BoxShadow(
                           color: Color.fromRGBO(143, 148, 251, .2),
                           blurRadius: 20.0,
                           offset: Offset(0, 10),
@@ -185,7 +200,7 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                           ),
                           child: TextFormField(
                             controller: user,
-                            readOnly: true, // ID shouldn't be editable
+                            readOnly: true,
                             decoration: InputDecoration(
                               border: InputBorder.none,
                               hintText: "Student ID",
@@ -290,10 +305,12 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                             controller: fmob,
                             keyboardType: TextInputType.phone,
                             validator: (value) {
-                              if (value != null && value.isNotEmpty && value.length != 10) {
+                              if (value != null &&
+                                  value.isNotEmpty &&
+                                  value.length != 10) {
                                 return 'Enter valid 10-digit number';
                               }
-                                return null; // Allow empty
+                              return null;
                             },
                             decoration: InputDecoration(
                               border: InputBorder.none,
@@ -310,10 +327,12 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                             controller: mmob,
                             keyboardType: TextInputType.phone,
                             validator: (value) {
-                              if (value != null && value.isNotEmpty && value.length != 10) {
+                              if (value != null &&
+                                  value.isNotEmpty &&
+                                  value.length != 10) {
                                 return 'Enter valid 10-digit number';
                               }
-                              return null; // Allow empty
+                              return null;
                             },
                             decoration: InputDecoration(
                               border: InputBorder.none,
@@ -416,8 +435,8 @@ class _Mob_Contact_Edit extends State<Contact_Edit> {
                 ),
                 const SizedBox(height: 30),
                 FadeInUp(
-                  duration: Duration(milliseconds: 2000),
-                  child: Text(
+                  duration: const Duration(milliseconds: 2000),
+                  child: const Text(
                     "Designed By Technocrat",
                     style: TextStyle(
                       color: Color.fromRGBO(143, 148, 251, 1),

@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'package:staff_task_management/Admin_DashBoard.dart';
 import 'package:staff_task_management/Admin_leave_Mgmt.dart';
 import 'package:staff_task_management/Staff_List.dart';
-import 'package:staff_task_management/Total_Present.dart';
 import 'package:staff_task_management/main.dart';
 
 class HomeNav extends StatefulWidget {
@@ -24,7 +23,6 @@ class _HomeNavState extends State<HomeNav> {
   final List<Widget> _pages = [
     StaffList(),
     Admin_Dashboard(),
-    Total_Attendance()
   ];
 
   @override
@@ -237,10 +235,6 @@ class _HomeNavState extends State<HomeNav> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.dashboard_customize, color: Colors.white),
                 label: 'Dashboard',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.co_present_outlined, color: Colors.white),
-                label: 'Attendance',
               ),
             ],
             selectedItemColor: Colors.blue,

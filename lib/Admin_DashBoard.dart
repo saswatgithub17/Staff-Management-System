@@ -7,8 +7,6 @@ import 'package:staff_task_management/admin_add_work.dart';
 import 'package:staff_task_management/attendance/attendance.dart';
 import 'package:staff_task_management/del_staff.dart';
 import 'package:staff_task_management/feedback/feedbackpage.dart';
-import 'package:staff_task_management/work/showredflag.dart';
-import 'package:staff_task_management/work/workdelay.dart';
 
 class Admin_Dashboard extends StatefulWidget {
   const Admin_Dashboard({Key? key}) : super(key: key);
@@ -102,29 +100,23 @@ class _DashboardState extends State<Admin_Dashboard> {
       _buildDashboardCard(Icons.calendar_today, 'Date Wise Work', () {
         _navigateTo(context, AdminDateWiseWork());
       }),
-      _buildDashboardCard(Icons.person_remove, 'Delete Staff', () {
-        _navigateTo(context, StaffDelete());
-      }),
       _buildDashboardCard(Icons.beach_access, 'Staff Leave', () {
         _navigateTo(context, Admin_Leave_Page());
       }),
-      _buildDashboardCard(Icons.contacts, 'Student Contact', () {
-        _navigateTo(context, Admin_ContactPrev());
-      }),
       _buildDashboardCard(Icons.person_add, 'Add Staff', () {
         _navigateTo(context, StaffAdd());
+      }),
+      _buildDashboardCard(Icons.person_remove, 'Delete Staff', () {
+        _navigateTo(context, StaffDelete());
+      }),
+      _buildDashboardCard(Icons.contacts, 'Student Contact', () {
+        _navigateTo(context, Admin_ContactPrev());
       }),
       _buildDashboardCard(Icons.people, 'Student Attendance', () {
         _navigateTo(context, Attendance());
       }),
       _buildDashboardCard(Icons.assignment, 'Assign Work', () {
         _navigateTo(context, Admin_ADD_WORK());
-      }),
-      _buildDashboardCard(Icons.flag, 'Assign Flag', () {
-        _navigateTo(context, Workdelay());
-      }),
-      _buildDashboardCard(Icons.warning, 'Red Flag Faculty', () {
-        _navigateTo(context, RedFlagPage());
       }),
       _buildDashboardCard(Icons.comment, 'Feedback', () {
         _navigateTo(context, Feedbackpage());

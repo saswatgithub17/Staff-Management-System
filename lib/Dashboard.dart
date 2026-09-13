@@ -6,6 +6,7 @@ import 'package:staff_task_management/Report_upload.dart';
 import 'package:staff_task_management/attendance/attendance.dart';
 import 'package:staff_task_management/feedback/stafffeedback.dart';
 import 'package:staff_task_management/mobile/Staff_Attendance.dart';
+import 'package:staff_task_management/mobile/academic_report.dart';
 import 'package:staff_task_management/mobile/detailsMobile.dart';
 import 'package:staff_task_management/mobile/mob_add_task.dart';
 import 'package:staff_task_management/mobile/mob_contact_prev.dart';
@@ -190,7 +191,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   final String url =
-      "https://creativecollege.in/MIS/MIS/Note%20and%20assignment%20project%201/index.php";
+      "https://creativecollege.in/Creative_users/Admin%20Panel%201/Notes%20And%20Assignment%20Tracker/index.php";
 
   void _launchURL() async {
     final uri = Uri.parse(url);
@@ -218,34 +219,6 @@ class _DashboardState extends State<Dashboard> {
             flexibleSpace: FlexibleSpaceBar(
               background: BannerDisplay(),
             ),
-            actions: [
-              Container(
-                margin: const EdgeInsets.only(right: 16.0),
-                child: AnimatedContainer(
-                  duration: Duration(milliseconds: 300),
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${data != null && data!.containsKey('COUNT') ? data!['COUNT'] : '0'}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Icon(Icons.flag, color: Colors.redAccent, size: 20),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
         body: LayoutBuilder(
@@ -276,6 +249,17 @@ class _DashboardState extends State<Dashboard> {
                         );
                       case 1:
                         return _buildCard(
+                          'assets/icons/student attendance.png',
+                          'Student Attendance',
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Attendance()),
+                          ),
+                          index,
+                        );
+                      case 2:
+                        return _buildCard(
                           'assets/icons/work.png',
                           'Work Details',
                               () => Navigator.push(
@@ -285,7 +269,7 @@ class _DashboardState extends State<Dashboard> {
                           ),
                           index,
                         );
-                      case 2:
+                      case 3:
                         return _buildCard(
                           'assets/icons/task.png',
                           'Task Management',
@@ -296,18 +280,18 @@ class _DashboardState extends State<Dashboard> {
                           ),
                           index,
                         );
-                      case 3:
+                      case 4:
                         return _buildCard(
-                          'assets/icons/self attendance.png',
-                          'Self Attendance',
+                          'assets/icons/report.png',
+                          'Academic Report',
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => Staff_Attendance()),
+                                builder: (context) => const AcademicReportWebView()),
                           ),
                           index,
                         );
-                      case 4:
+                      case 5:
                         return _buildCard(
                           'assets/icons/report.png',
                           'Report',
@@ -318,7 +302,7 @@ class _DashboardState extends State<Dashboard> {
                           ),
                           index,
                         );
-                      case 5:
+                      case 6:
                         return _buildCard(
                           'assets/icons/add task.png',
                           'Add Task',
@@ -329,7 +313,7 @@ class _DashboardState extends State<Dashboard> {
                           ),
                           index,
                         );
-                      case 6:
+                      case 7:
                         return _buildCard(
                           'assets/icons/apply for leave.png',
                           'Apply Leave',
@@ -337,17 +321,6 @@ class _DashboardState extends State<Dashboard> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) => Leave_Page()),
-                          ),
-                          index,
-                        );
-                      case 7:
-                        return _buildCard(
-                          'assets/icons/student attendance.png',
-                          'Student Attendance',
-                              () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => Attendance()),
                           ),
                           index,
                         );
@@ -362,7 +335,6 @@ class _DashboardState extends State<Dashboard> {
                           ),
                           index,
                         );
-                    // In your dashboard.dart, update case 9:
                       case 9:
                         return _buildCard(
                           'assets/icons/mis.png',
@@ -371,8 +343,8 @@ class _DashboardState extends State<Dashboard> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => MIS(
-                                isDarkMode: _isDarkMode, // Your state variable
-                                onToggleTheme: _toggleTheme, // Your toggle function
+                                isDarkMode: _isDarkMode,
+                                onToggleTheme: _toggleTheme,
                               ),
                             ),
                           ),

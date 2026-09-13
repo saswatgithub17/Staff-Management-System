@@ -87,7 +87,7 @@ class Insertdata extends State<InsertData> {
     return Scaffold(
 
       body: webViewWrapper.buildWebView(
-        'https://creativecollege.in/MIS/MIS/Notes%20And%20Assignment%20Tracker/insert.php',
+        'https://creativecollege.in/Creative_users/Admin%20Panel%201/Notes%20And%20Assignment%20Tracker/insert.php',
       ),
     );
   }

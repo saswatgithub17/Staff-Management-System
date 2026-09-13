@@ -246,7 +246,7 @@ class _AttendanceState extends State<Attendance> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: ['BBA', 'BSC-C', 'BCA'].map((course) {
+                    children: ['BBA', 'BCA', 'BSC-C', 'BSC-D', 'MBA', 'MCA'].map((course) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         child: ChoiceChip(

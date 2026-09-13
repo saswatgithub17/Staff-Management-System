@@ -43,7 +43,7 @@ class ContactPrev extends StatefulWidget {
 }
 
 class _ContactPageState extends State<ContactPrev> {
-  List<String> allowedCourses = ['BSC', 'BCA', 'BBA'];
+  List<String> allowedCourses = ['BSC', 'BCA', 'BBA', 'DSC', 'MBA', 'MCA'];
   XFile? _pickedImage;
 
   Future<void> loadImagePath() async {
@@ -195,17 +195,47 @@ class _Contact extends State<Contact> {
   Future<void> fetchDataForYear() async {
     Course = widget.course;
     Year = selectedYear; // Use the selected year
+
+    String apiCourse = Course;
+    if (Year == '1st') {
+      if (Course == 'BSC') {
+        apiCourse = 'BSC-C';
+      } else if (Course == 'DSC') {
+        apiCourse = 'BSC-D';
+      } else if (Course == 'MBA') {
+        apiCourse = 'MBA';
+      } else if (Course == 'MCA') {
+        apiCourse = 'MCA';
+      }
+    }
+
     var url = Uri.parse(
-        'https://creativecollege.in/Flutter/StudentContact.php?Course=$Course&Year=$Year');
+        'https://creativecollege.in/Flutter/StudentContact.php?Course=$apiCourse&Year=$Year');
 
     var response = await http.get(url);
 
     if (response.statusCode == 200) {
-      setState(() {
-        data = json.decode(response.body);
-      });
+      try {
+        var decoded = json.decode(response.body);
+        if (decoded is List) {
+          setState(() {
+            data = decoded;
+          });
+        } else {
+          setState(() {
+            data = [];
+          });
+        }
+      } catch (e) {
+        setState(() {
+          data = [];
+        });
+      }
     } else {
       print('Failed to load data');
+      setState(() {
+        data = [];
+      });
     }
   }
 
@@ -425,8 +455,8 @@ class _Contact extends State<Contact> {
                                           children: [
                                             IconButton(
                                               icon: const Icon(Icons.edit),
-                                              onPressed: () {
-                                                Navigator.push(
+                                              onPressed: () async {
+                                                var result = await Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
                                                     builder: (context) =>
@@ -451,6 +481,9 @@ class _Contact extends State<Contact> {
                                                         ),
                                                   ),
                                                 );
+                                                if (result != null) {
+                                                  fetchDataForYear();
+                                                }
                                               },
                                             ),
                                           ],

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WebViewScreen extends StatelessWidget {
-  final String url = "https://creativecollege.in/MIS/MIS/Note%20and%20assignment%20project%201/index.php";
+  final String url = "https://creativecollege.in/Creative_users/Admin%20Panel%201/Notes%20And%20Assignment%20Tracker/index.php";
 
   void _launchURL() async {
     Uri uri = Uri.parse(url);
