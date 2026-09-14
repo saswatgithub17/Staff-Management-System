@@ -1,7 +1,8 @@
+import 'dart:convert';
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-import 'package:animate_do/animate_do.dart';
 
 class StaffAdd extends StatefulWidget {
   const StaffAdd({Key? key}) : super(key: key);
@@ -14,51 +15,84 @@ class _StaffAddState extends State<StaffAdd> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController passController = TextEditingController();
   final TextEditingController desigController = TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
 
-  void Add_Staff() async {
-    final response = await http.post(
-      Uri.parse('https://creativecollege.in/Flutter/staff_add.php'),
-      body: {
-        'name': nameController.text,
-        'desig': desigController.text,
-        'password': passController.text,
-      },
-    );
+  bool _isLoading = false;
+  bool _obscurePassword = true;
 
-    if (response.statusCode == 200) {
-      if (response.body == 'Success') {
-        Fluttertoast.showToast(
-          msg: 'NEW STAFF ADDED',
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        nameController.text = '';
-        desigController.text = '';
-        passController.text = '';
-      } else {
-        Fluttertoast.showToast(
-          msg: response.body,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: const Color.fromARGB(255, 175, 76, 76),
-          textColor: Colors.white,
-        );
+  @override
+  void dispose() {
+    nameController.dispose();
+    passController.dispose();
+    desigController.dispose();
+    super.dispose();
+  }
+
+  void _addStaff() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://creativecollege.in/Flutter/staff_add.php'),
+        body: {
+          'name': nameController.text.trim(),
+          'desig': desigController.text.trim(),
+          'password': passController.text.trim(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        if (response.body.trim() == 'Success') {
+          Fluttertoast.showToast(
+            msg: 'NEW STAFF ADDED SUCCESSFULLY',
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          _clearForm();
+        } else {
+          Fluttertoast.showToast(
+            msg: response.body,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.redAccent,
+            textColor: Colors.white,
+          );
+        }
+      }
+    } catch (_) {
+      Fluttertoast.showToast(
+        msg: 'Connection error',
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        textColor: Colors.white,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
+  }
+
+  void _clearForm() {
+    nameController.clear();
+    desigController.clear();
+    passController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-            backgroundColor: Colors.black,
-            title: Text(
-              'Add Staff',
+            backgroundColor: const Color(0xFF0F172A),
+            title: const Text(
+              'Add New Staff',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -66,130 +100,157 @@ class _StaffAddState extends State<StaffAdd> {
             ),
             floating: false,
             pinned: true,
+            iconTheme: const IconThemeData(color: Colors.white),
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Form(
                 key: _formKey,
                 child: Column(
                   children: <Widget>[
-                    FadeInUp(
-                      duration: Duration(milliseconds: 1000),
-                      delay: Duration(milliseconds: 50),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: TextFormField(
-                          controller: nameController,
-                          decoration: InputDecoration(
-                            labelText: 'Name',
-                            labelStyle: TextStyle(color: Colors.grey[800]),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 0),
+                    const SizedBox(height: 10),
+
+                    // Card Container
+                    Container(
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF64748B).withOpacity(0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
                           ),
-                          style: TextStyle(color: Colors.black),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your name';
-                            }
-                            return null;
-                          },
-                        ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Name Field
+                          TextFormField(
+                            controller: nameController,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter staff name';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Full Name',
+                              hintText: 'Enter staff full name',
+                              prefixIcon: const Icon(Icons.person_outline_rounded, color: Color(0xFF16A34A)),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A), width: 1.8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Designation Field
+                          TextFormField(
+                            controller: desigController,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter designation';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Designation',
+                              hintText: 'e.g. IT Faculty / Assistant Professor',
+                              prefixIcon: const Icon(Icons.work_outline_rounded, color: Color(0xFF16A34A)),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A), width: 1.8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Password Field
+                          TextFormField(
+                            controller: passController,
+                            obscureText: _obscurePassword,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter password';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              hintText: 'Assign initial password',
+                              prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF16A34A)),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFF16A34A), width: 1.8),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    FadeInUp(
-                      duration: Duration(milliseconds: 1000),
-                      delay: Duration(milliseconds: 50),
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 10),
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: TextFormField(
-                          controller: desigController,
-                          decoration: InputDecoration(
-                            labelText: 'Designation',
-                            labelStyle: TextStyle(color: Colors.grey[800]),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 0),
-                          ),
-                          style: TextStyle(color: Colors.black),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your designation';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                    FadeInUp(
-                      duration: Duration(milliseconds: 1000),
-                      delay: Duration(milliseconds: 50),
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 10),
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.3),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: TextFormField(
-                          controller: passController,
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            labelStyle: TextStyle(color: Colors.grey[800]),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 0),
-                          ),
-                          style: TextStyle(color: Colors.black),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 20),
+
+                    const SizedBox(height: 30),
+
+                    // Action Buttons
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        FadeInLeftBig(
-                          duration: Duration(milliseconds: 1000),
+                        Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: _clearForm,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE2E8F0),
+                              foregroundColor: const Color(0xFF1E293B),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Clear', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () {
                               if (_formKey.currentState!.validate()) {
                                 showDialog(
                                   context: context,
@@ -199,41 +260,19 @@ class _StaffAddState extends State<StaffAdd> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20.0),
                                       ),
-                                      title: Text(
-                                        "Confirm Add Staff",
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      content: Text(
-                                        "Are you sure you want to add this staff?",
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                        ),
-                                      ),
+                                      title: const Text("Confirm Add Staff", style: TextStyle(fontWeight: FontWeight.bold)),
+                                      content: const Text("Are you sure you want to add this staff member?"),
                                       actions: <Widget>[
                                         TextButton(
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                          },
-                                          child: Text(
-                                            "Cancel",
-                                            style: TextStyle(
-                                              color: Colors.blue,
-                                            ),
-                                          ),
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text("Cancel"),
                                         ),
                                         TextButton(
                                           onPressed: () {
-                                            Add_Staff();
                                             Navigator.of(context).pop();
+                                            _addStaff();
                                           },
-                                          child: Text(
-                                            "Confirm",
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                            ),
-                                          ),
+                                          child: const Text("Confirm", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold)),
                                         ),
                                       ],
                                     );
@@ -242,41 +281,21 @@ class _StaffAddState extends State<StaffAdd> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
+                              backgroundColor: const Color(0xFF16A34A),
                               foregroundColor: Colors.white,
+                              elevation: 3,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: Text(
-                              'Add Staff',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ),
-                        FadeInRightBig(
-                          duration: Duration(milliseconds: 1000),
-                          child: ElevatedButton(
-                            onPressed: _clearForm,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[800],
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(1),
-                              ),
-                              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                            ),
-                            child: Text(
-                              "Clear Fields",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                                : const Text('Add Staff', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           ),
                         ),
                       ],
@@ -289,11 +308,5 @@ class _StaffAddState extends State<StaffAdd> {
         ],
       ),
     );
-  }
-
-  void _clearForm() {
-    nameController.text = '';
-    desigController.text = '';
-    passController.text = '';
   }
 }

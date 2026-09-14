@@ -43,7 +43,7 @@ class _AcademicReportWebViewState extends State<AcademicReportWebView> {
           'Academic Report',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF0F172A),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Stack(

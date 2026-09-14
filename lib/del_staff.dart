@@ -1,8 +1,8 @@
 import 'dart:convert';
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-import 'package:animate_do/animate_do.dart';
 
 class StaffDelete extends StatefulWidget {
   const StaffDelete({Key? key}) : super(key: key);
@@ -13,19 +13,35 @@ class StaffDelete extends StatefulWidget {
 
 class _StaffDeleteState extends State<StaffDelete> {
   List<dynamic> items = [];
+  bool isLoading = true;
 
   Future<void> fetchData() async {
     var url = Uri.parse('https://creativecollege.in/Flutter/staff_list.php');
 
-    var response = await http.get(url);
+    try {
+      var response = await http.get(url);
 
-    if (response.statusCode == 200) {
-      setState(() {
-        items = json.decode(response.body);
-        items.sort((a, b) => a['name'].compareTo(b['name']));
-      });
-    } else {
-      print('Failed to load data');
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            items = json.decode(response.body);
+            items.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
+            isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -38,39 +54,38 @@ class _StaffDeleteState extends State<StaffDelete> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Changed background color to white
-      body: CustomScrollView(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFDC2626)))
+          : CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-            backgroundColor: Colors.black, // Changed app bar color to black
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-            ),
-            title: Text(
+            backgroundColor: const Color(0xFF0F172A),
+            title: const Text(
               'Delete Staff',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white, // Changed title color to white
-                fontFamily: 'Times New Roman',
+                color: Colors.white,
               ),
             ),
             floating: false,
             pinned: true,
+            iconTheme: const IconThemeData(color: Colors.white),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                return FadeInLeft(
-                  duration: Duration(milliseconds: 300),
-                  delay: Duration(milliseconds: index * 50),
-                  child: StaffCard(item: items[index], fetchData: fetchData),
-                );
-              },
-              childCount: items.length,
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) {
+                  return FadeInLeft(
+                    duration: const Duration(milliseconds: 300),
+                    delay: Duration(milliseconds: index * 50),
+                    child: StaffDeleteCard(item: items[index], fetchData: fetchData),
+                  );
+                },
+                childCount: items.length,
+              ),
             ),
           ),
         ],
@@ -79,111 +94,144 @@ class _StaffDeleteState extends State<StaffDelete> {
   }
 }
 
-class StaffCard extends StatelessWidget {
+class StaffDeleteCard extends StatelessWidget {
   final Map<String, dynamic> item;
   final Function fetchData;
 
-  StaffCard({required this.item, required this.fetchData});
+  const StaffDeleteCard({Key? key, required this.item, required this.fetchData}) : super(key: key);
 
   Future<void> delete(String name) async {
     var url = Uri.parse(
         'https://creativecollege.in/Flutter/Delete_staff.php?name=$name');
 
-    var response = await http.get(url);
-    if (response.statusCode == 200) {
-      if (response.body == 'Success') {
-        Fluttertoast.showToast(
-          msg: 'Staff deleted successfully!',
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        fetchData();
-      } else {
-        Fluttertoast.showToast(
-          msg: response.body,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+    try {
+      var response = await http.get(url);
+      if (response.statusCode == 200) {
+        if (response.body.trim() == 'Success') {
+          Fluttertoast.showToast(
+            msg: 'Staff deleted successfully!',
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          fetchData();
+        } else {
+          Fluttertoast.showToast(
+            msg: response.body,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+        }
       }
-    }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.all(10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
+    final name = item['name'] ?? 'Staff Member';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF64748B).withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      elevation: 5,
       child: Padding(
-        padding: EdgeInsets.all(8),
-        child: ListTile(
-          title: Text(
-            item['name'],
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black), // Changed text color to black
-          ),
-          trailing: IconButton(
-            icon: Icon(Icons.delete, color: Colors.red),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFFFEF2F2),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : 'S',
+                style: const TextStyle(
+                  color: Color(0xFFDC2626),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
                     ),
-                    title: Text(
-                      "Confirm Delete",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item['user_name'] ?? 'Staff ID',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFDC2626), size: 26),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0),
                       ),
-                    ),
-                    content: Text(
-                      "Are you sure you want to delete ${item['name']}?",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                      ),
-                    ),
-                    actions: <Widget>[
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          "Cancel",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 16,
-                          ),
+                      title: const Text(
+                        "Confirm Delete",
+                        style: TextStyle(
+                          color: Color(0xFF1E293B),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          delete(item['name']);
-                          Navigator.of(context).pop();
-                        },
-                        child: Text(
-                          "Delete",
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      content: Text(
+                        "Are you sure you want to delete $name?",
+                        style: const TextStyle(color: Color(0xFF475569)),
+                      ),
+                      actions: <Widget>[
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            delete(name);
+                          },
+                          child: const Text(
+                            "Delete",
+                            style: TextStyle(
+                              color: Color(0xFFDC2626),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

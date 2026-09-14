@@ -117,10 +117,9 @@ class _ProfilePageState extends State<Profile> {
 
   @override
   Widget build(BuildContext context) {
-    const _color1 = Colors.black;
-    const bgColor = Colors.grey;
+    const _color1 = Color(0xFF0F172A);
     return Scaffold(
-        backgroundColor: bgColor[200],
+        backgroundColor: const Color(0xFFF8FAFC),
         body: CustomScrollView(
         slivers: <Widget>[
         SliverAppBar(
@@ -282,59 +281,120 @@ class _ProfilePageState extends State<Profile> {
     ),
     const SizedBox(height: 20),
     FadeInLeft(
-    duration: Duration(milliseconds: 1000),
-    child: Card(
-    margin: const EdgeInsets.only(left: 8, right: 8, top: 10),
-    elevation: 2,
-    child: ListTile(
-    leading: const Icon(Icons.person),
-    title: Text('$name'),
-    ),),
+      duration: const Duration(milliseconds: 600),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64748B).withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ListTile(
+          leading: const Icon(Icons.person_outline_rounded, color: Color(0xFF4F46E5)),
+          title: Text(name.isEmpty ? 'Loading...' : name,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+        ),
+      ),
     ),
     FadeInRight(
-      duration: Duration(milliseconds: 1000),
-      child: Card(
-        margin: const EdgeInsets.only(left: 8, right: 8, top: 10),
-        elevation: 2,
+      duration: const Duration(milliseconds: 700),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64748B).withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: ListTile(
-          leading: const Icon(Icons.man_3_sharp),
-          title: Text('$userName'),
+          leading: const Icon(Icons.badge_outlined, color: Color(0xFF4F46E5)),
+          title: Text(userName.isEmpty ? 'Loading...' : userName,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
         ),
       ),
     ),
-      FadeInLeft(
-        duration: Duration(milliseconds: 1000),
-        child: Card(
-          margin: const EdgeInsets.only(left: 8, right: 8, top: 10),
-          elevation: 2,
-          child: ListTile(
-            leading: const Icon(Icons.email),
-            title: Text('$email'),
-          ),
+    FadeInLeft(
+      duration: const Duration(milliseconds: 800),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64748B).withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ListTile(
+          leading: const Icon(Icons.email_outlined, color: Color(0xFF4F46E5)),
+          title: Text(email.isEmpty ? 'Loading...' : email,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
         ),
       ),
-      FadeInRight(
-        duration: Duration(milliseconds: 1000),
-        child: Card(
-          margin: const EdgeInsets.only(left: 8, right: 8, top: 10),
-          elevation: 2,
-          child: ListTile(
-            leading: const Icon(Icons.phone),
-            title: Text('$phone'),
-          ),
+    ),
+    FadeInRight(
+      duration: const Duration(milliseconds: 900),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64748B).withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ListTile(
+          leading: const Icon(Icons.phone_outlined, color: Color(0xFF4F46E5)),
+          title: Text(phone.isEmpty ? 'Loading...' : phone,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
         ),
       ),
-      FadeInLeft(
-        duration: Duration(milliseconds: 1000),
-        child: Card(
-          margin: const EdgeInsets.only(left: 8, right: 8, top: 10),
-          elevation: 2,
-          child: ListTile(
-            leading: const Icon(Icons.location_on),
-            title: Text('$address'),
-          ),
+    ),
+    FadeInLeft(
+      duration: const Duration(milliseconds: 1000),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64748B).withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ListTile(
+          leading: const Icon(Icons.location_on_outlined, color: Color(0xFF4F46E5)),
+          title: Text(address.isEmpty ? 'Loading...' : address,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
         ),
       ),
+    ),
       const SizedBox(height: 20),
     ],
     ),

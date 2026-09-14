@@ -94,8 +94,8 @@ class _ImageListState extends State<ImageList> {
 
   @override
   Widget build(BuildContext context) {
-    const _color1 = Colors.black;
-    const bgColor = Color(0xFFDCD8CD);
+    const _color1 = Color(0xFF0F172A);
+    const bgColor = Color(0xFFF8FAFC);
 
     return Scaffold(
       backgroundColor: bgColor,

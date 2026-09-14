@@ -251,15 +251,16 @@ class _DetailsMobileState extends State<DetailsMobile> {
 
   Widget buildFilterOption(String label, int index, VoidCallback onPressed) {
     final isSelected = selectedFilterIndex == index;
-    final bgColor = isSelected ? Colors.blue : Colors.white;
-    final textColor = isSelected ? Colors.white : Colors.black;
+    final bgColor = isSelected ? const Color(0xFF2563EB) : Colors.white;
+    final textColor = isSelected ? Colors.white : const Color(0xFF64748B);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),
       child: Material(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        elevation: 2,
+        elevation: isSelected ? 3 : 1,
+        shadowColor: isSelected ? Colors.blue.withOpacity(0.3) : Colors.black12,
         child: InkWell(
           onTap: () {
             setState(() {
@@ -268,13 +269,14 @@ class _DetailsMobileState extends State<DetailsMobile> {
             onPressed();
           },
           borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
             child: Text(
               label,
               style: TextStyle(
                 color: textColor,
-                fontWeight: FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 14,
               ),
             ),
           ),
@@ -290,30 +292,23 @@ class _DetailsMobileState extends State<DetailsMobile> {
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-            backgroundColor: Colors.blue,
-            expandedHeight: 150.0,
+            backgroundColor: const Color(0xFF0F172A),
+            expandedHeight: 120.0,
             floating: false,
             pinned: true,
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(30),
+                bottom: Radius.circular(24),
               ),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
+            flexibleSpace: const FlexibleSpaceBar(
+              title: Text(
                 'Work Details',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.blue.shade700, Colors.blue.shade400],
-                  ),
-                ),
-              ),
+              centerTitle: true,
             ),
+            iconTheme: const IconThemeData(color: Colors.white),
             actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.menu, color: Colors.white),
@@ -459,10 +454,18 @@ class _DetailsMobileState extends State<DetailsMobile> {
     }
 
     return FadeInUp(
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF64748B).withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -472,12 +475,12 @@ class _DetailsMobileState extends State<DetailsMobile> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
+                      color: statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(statusIcon, color: statusColor, size: 20),
+                    child: Icon(statusIcon, color: statusColor, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

@@ -103,7 +103,7 @@ class _Task_mgmt extends State<Task_mgmt> {
 
   @override
   Widget build(BuildContext context) {
-    const _color1 = Color(0xFF070707);
+    const _color1 = Color(0xFF0F172A);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: _color1,
@@ -168,17 +168,42 @@ class _Task_mgmt extends State<Task_mgmt> {
         children: [
           Padding(
             padding:
-                const EdgeInsets.only(top: 10, bottom: 10, left: 30, right: 30),
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Text('Active: $activeCount',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Text('Pending: $pendingCount',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                // Text('Completed: $completedCount',style: TextStyle(fontSize: 17)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.play_circle_fill_rounded, color: Colors.blue, size: 18),
+                      const SizedBox(width: 6),
+                      Text('Active: $activeCount',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E40AF))),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.pending_actions_rounded, color: Colors.red, size: 18),
+                      const SizedBox(width: 6),
+                      Text('Pending: $pendingCount',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF991B1B))),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

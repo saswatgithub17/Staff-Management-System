@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:staff_task_management/Dashboard.dart';
-import 'package:staff_task_management/mobile/mob_Profile.dart';
-import 'package:staff_task_management/mobile/ImageList.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:staff_task_management/Dashboard.dart';
+import 'package:staff_task_management/mobile/ImageList.dart';
+import 'package:staff_task_management/mobile/mob_Profile.dart';
 
 class NavPage extends StatefulWidget {
   const NavPage({super.key});
@@ -15,9 +15,8 @@ class NavPage extends StatefulWidget {
 
 class _NavPageState extends State<NavPage> {
   int _currentIndex = 0;
-  late String pickedImagePath;
   final List<Widget> _pages = [
-    Dashboard(),
+    const Dashboard(),
     ImageList(),
     const Profile(),
   ];
@@ -27,54 +26,60 @@ class _NavPageState extends State<NavPage> {
   Future<void> fetchData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String userID = prefs.getString('userID') ?? '';
-    final response = await http.get(Uri.parse('https://creativecollege.in/Flutter/Profile.php?id=$userID'));
+    if (userID.isEmpty) return;
 
-    if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body);
+    try {
+      final response = await http.get(Uri.parse(
+          'https://creativecollege.in/Flutter/Profile.php?id=$userID'));
 
-      if (jsonData is List && jsonData.isNotEmpty) {
-        final firstElement = jsonData[0];
-        setState(() {
-          name = firstElement['name'];
-        });
-      } else {
-        setState(() {
-          name = 'Data not found';
-        });
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+
+        if (jsonData is List && jsonData.isNotEmpty) {
+          final firstElement = jsonData[0];
+          if (mounted) {
+            setState(() {
+              name = firstElement['name'] ?? '';
+            });
+          }
+        }
       }
-    } else {
-      throw Exception('Failed to load data');
-    }
+    } catch (_) {}
   }
 
   @override
   void initState() {
     super.initState();
-    loadImagePath();
     fetchData();
-  }
-
-  Future<void> loadImagePath() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? savedImagePath = prefs.getString('pickedImagePath');
-
-    setState(() {
-      if (savedImagePath != null) {
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.16),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
-        child: Container(
-          color: Colors.white, // Set background to white
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (int index) {
@@ -82,35 +87,48 @@ class _NavPageState extends State<NavPage> {
                 _currentIndex = index;
               });
             },
-            selectedLabelStyle: const TextStyle(color: Colors.black), // Selected label style
-            unselectedLabelStyle: const TextStyle(color: Colors.grey), // Unselected label style
-            items: [
+            elevation: 0,
+            backgroundColor: const Color(0xFF0F172A),
+            selectedItemColor: Colors.white,
+            unselectedItemColor: Colors.grey.shade500,
+            selectedFontSize: 13,
+            unselectedFontSize: 12,
+            type: BottomNavigationBarType.fixed,
+            items: const [
               BottomNavigationBarItem(
-                icon: _currentIndex == 0
-                    ? const Icon(Icons.dashboard, color: Colors.black)
-                    : const Icon(Icons.dashboard, color: Colors.grey),
-                label: 'DashBoard',
-                backgroundColor: Colors.white,
-                activeIcon: const Icon(Icons.dashboard, color: Colors.black),
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.grid_view_outlined, size: 24),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.grid_view_rounded, size: 26, color: Color(0xFF6366F1)),
+                ),
+                label: 'Dashboard',
               ),
               BottomNavigationBarItem(
-                icon: _currentIndex == 1
-                    ? const Icon(Icons.note_sharp, color: Colors.black)
-                    : const Icon(Icons.note_sharp, color: Colors.grey),
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.campaign_outlined, size: 24),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.campaign_rounded, size: 26, color: Color(0xFF6366F1)),
+                ),
                 label: 'Notice',
-                backgroundColor: Colors.white,
-                activeIcon: const Icon(Icons.note_sharp, color: Colors.black),
               ),
               BottomNavigationBarItem(
-                icon: _currentIndex == 2
-                    ? const Icon(Icons.person_outline, color: Colors.black)
-                    : const Icon(Icons.person_outline, color: Colors.grey),
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.person_outline_rounded, size: 24),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.person_rounded, size: 26, color: Color(0xFF6366F1)),
+                ),
                 label: 'Profile',
-                backgroundColor: Colors.white,
-                activeIcon: const Icon(Icons.person_outline, color: Colors.black),
               ),
             ],
-            type: BottomNavigationBarType.fixed, // Important to set the type to fixed
           ),
         ),
       ),

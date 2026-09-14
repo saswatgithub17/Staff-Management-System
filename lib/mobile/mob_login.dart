@@ -1,13 +1,10 @@
 import 'package:animate_do/animate_do.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:staff_task_management/admin_home.dart';
 import 'package:staff_task_management/mobile/mob_navbar.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:http/http.dart' as http;
 
 class Mob_Login_Page extends StatefulWidget {
   const Mob_Login_Page({super.key});
@@ -17,306 +14,359 @@ class Mob_Login_Page extends StatefulWidget {
 }
 
 class _Mob_Login_PageState extends State<Mob_Login_Page> {
-  TextEditingController user = TextEditingController();
-  TextEditingController pass = TextEditingController();
+  final TextEditingController user = TextEditingController();
+  final TextEditingController pass = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    user.dispose();
+    pass.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
-    final response = await http.post(
-      Uri.parse('https://creativecollege.in/Flutter/Login.php'),
-      body: {
-        'user': user.text,
-        'pass': pass.text,
-      },
-    );
+    if (!_formKey.currentState!.validate()) return;
 
-    if (response.statusCode == 200) {
-      if (response.body == 'Success') {
-        Fluttertoast.showToast(
-          msg: 'Login Successful',
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setBool('isLoggedIn', true); // Mark the user as logged in
-        prefs.setString('userID', user.text); // Save user ID
-        prefs.setString('password', pass.text); // Save password
+    setState(() {
+      _isLoading = true;
+    });
 
-        setState(() {
-          // Navigate to the HomePage on successful login
+    try {
+      final response = await http.post(
+        Uri.parse('https://creativecollege.in/Flutter/Login.php'),
+        body: {
+          'user': user.text.trim(),
+          'pass': pass.text.trim(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = response.body.trim();
+        if (body == 'Success') {
+          Fluttertoast.showToast(
+            msg: 'Login Successful',
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setString('userID', user.text.trim());
+          await prefs.setString('password', pass.text.trim());
+
+          if (!mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => NavPage()),
-            result: MaterialPageRoute(builder: (context) => NavPage()),
+            MaterialPageRoute(builder: (context) => const NavPage()),
           );
-        });
-      } else if (response.body == 'Admin') {
-        Fluttertoast.showToast(
-          msg: 'Login Successful',
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setBool('isLoggedIn', true); // Mark the user as logged in
-        prefs.setBool('isLoggedInAdmin', true); // Mark the user as logged in
-        prefs.setString('userID', user.text); // Save user ID
-        prefs.setString('password', pass.text); // Save password
+        } else if (body == 'Admin') {
+          Fluttertoast.showToast(
+            msg: 'Login Successful',
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setBool('isLoggedInAdmin', true);
+          await prefs.setString('userID', user.text.trim());
+          await prefs.setString('password', pass.text.trim());
 
-        setState(() {
-          // Navigate to the HomePage on successful login
+          if (!mounted) return;
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomeNav()),
-            result: MaterialPageRoute(builder: (context) => HomeNav()),
+            MaterialPageRoute(builder: (context) => const HomeNav()),
           );
-        });
+        } else {
+          Fluttertoast.showToast(
+            msg: 'Login Failed. Enter Correct Details',
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.redAccent,
+            textColor: Colors.white,
+          );
+        }
       } else {
         Fluttertoast.showToast(
-          msg: 'Login Failed Enter Correct Details',
+          msg: 'Server error: ${response.statusCode}',
           gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.redAccent,
           textColor: Colors.white,
         );
-        print("Login failed");
       }
-    } else {
-      print("Error: ${response.statusCode}");
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Connection error. Please try again.',
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        textColor: Colors.white,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Center(
           child: SingleChildScrollView(
-            child: Container(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
+            child: Form(
+              key: _formKey,
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  // Container(
-                  //   height: 380,
-                  //   decoration: BoxDecoration(
-                  //       image: DecorationImage(
-                  //           image: AssetImage('assets/images/background.png'),
-                  //           fit: BoxFit.fill)),
-                  //   child: Stack(
-                  //     children: <Widget>[
-                  //       Positioned(
-                  //         left: 30,
-                  //         width: 80,
-                  //         height: 200,
-                  //         child: FadeInUp(
-                  //             duration: Duration(seconds: 1),
-                  //             child: Container(
-                  //               decoration: BoxDecoration(
-                  //                   image: DecorationImage(
-                  //                       image: AssetImage(
-                  //                           'assets/images/light-1.png'))),
-                  //             )),
-                  //       ),
-                  //       Positioned(
-                  //         left: 140,
-                  //         width: 80,
-                  //         height: 150,
-                  //         child: FadeInUp(
-                  //             duration: Duration(milliseconds: 1200),
-                  //             child: Container(
-                  //               decoration: BoxDecoration(
-                  //                   image: DecorationImage(
-                  //                       image: AssetImage(
-                  //                           'assets/images/light-2.png'))),
-                  //             )),
-                  //       ),
-                  //       Positioned(
-                  //         right: 40,
-                  //         top: 40,
-                  //         width: 80,
-                  //         height: 150,
-                  //         child: FadeInUp(
-                  //             duration: Duration(milliseconds: 1300),
-                  //             child: Container(
-                  //               decoration: BoxDecoration(
-                  //                   image: DecorationImage(
-                  //                       image: AssetImage(
-                  //                           'assets/images/clock.png'))),
-                  //             )),
-                  //       ),
-                  //       Positioned(
-                  //         child: FadeInUp(
-                  //             duration: Duration(milliseconds: 1600),
-                  //             child: Container(
-                  //               margin: EdgeInsets.only(top: 250),
-                  //               child: Center(
-                  //                   child: Column(
-                  //                 children: [
-                  //                   SizedBox(height: 10,),
-                  //                   Image.asset(
-                  //                     'assets/images/logoo.jpg',
-                  //                     width:
-                  //                         100, // Set the width as needed for larger screens
-                  //                   ),
+                  // Logo Banner
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 1000),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        'assets/images/logoo.jpg',
+                        width: 180,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
 
-                  //                 ],
-                  //               )),
-                  //             )),
-                  //       )
-                  //     ],
-                  //   ),
-                  // ),
-                  Padding(
-                    padding: EdgeInsets.all(30.0),
+                  // Header Title
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 1000),
                     child: Column(
-                      children: <Widget>[
-                        FadeInUp(
-                          duration: Duration(milliseconds: 2000),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/images/logoo.jpg',
-                                width: 190,
-                                // Set the width as needed for larger screens
-                              ),
-                            ],
+                      children: const [
+                        Text(
+                          "Welcome Back",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
                           ),
                         ),
-                        SizedBox(
-                          height: 25,
-                        ),
-                        FadeInUp(
-                          duration: Duration(milliseconds: 2000),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                "Login",
-                                style: TextStyle(
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'Times new Roman',
-                                    color: Colors.blueAccent),
-                              )
-                            ],
+                        SizedBox(height: 6),
+                        Text(
+                          "Sign in to continue to Portal",
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        SizedBox(
-                          height: 20,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Form Container Card
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 1200),
+                    child: Container(
+                      padding: const EdgeInsets.all(24.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6366F1).withOpacity(0.08),
+                            blurRadius: 30.0,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1.2,
                         ),
-                        FadeInUp(
-                            duration: Duration(milliseconds: 1800),
-                            child: Container(
-                              padding: EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: Color.fromRGBO(143, 148, 251, 1)),
-                                  boxShadow: [
-                                    BoxShadow(
-                                        color:
-                                            Color.fromRGBO(143, 148, 251, .2),
-                                        blurRadius: 20.0,
-                                        offset: Offset(0, 10))
-                                  ]),
-                              child: Column(
-                                children: <Widget>[
-                                  Container(
-                                    padding: EdgeInsets.all(8.0),
-                                    decoration: BoxDecoration(
-                                        border: Border(
-                                            bottom: BorderSide(
-                                                color: Color.fromRGBO(
-                                                    143, 148, 251, 1)))),
-                                    child: TextField(
-                                      controller: user,
-                                      decoration: InputDecoration(
-                                          border: InputBorder.none,
-                                          hintText: "Username",
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey[700])),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: TextField(
-                                      controller: pass,
-                                      obscureText: true,
-                                      decoration: InputDecoration(
-                                          border: InputBorder.none,
-                                          hintText: "Password",
-                                          hintStyle: TextStyle(
-                                              color: Colors.grey[700])),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            )),
-                        SizedBox(
-                          height: 30,
-                        ),
-                        FadeInUp(
-                          duration: Duration(milliseconds: 1900),
-                          child: InkWell(
-                            onTap: () {
-                              _login();
+                      ),
+                      child: Column(
+                        children: <Widget>[
+                          // Username Field
+                          TextFormField(
+                            controller: user,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter Username';
+                              }
+                              return null;
                             },
-                            child: Container(
-                              height: 50,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Color.fromRGBO(143, 148, 251, 1),
-                                    Color.fromRGBO(143, 148, 251, .6),
-                                  ],
-                                ),
+                            decoration: InputDecoration(
+                              labelText: "Username",
+                              hintText: "Enter your User ID",
+                              prefixIcon: const Icon(
+                                Icons.person_outline_rounded,
+                                color: Color(0xFF6366F1),
                               ),
-                              child: Center(
-                                child: Text(
-                                  "Login",
-                                  style: TextStyle(
-                                    fontFamily: 'Times new Roman',
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF6366F1),
+                                  width: 1.8,
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          height: 70,
-                        ),
-                        FadeInUp(
-                            duration: Duration(milliseconds: 2000),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Designed By Technocrat",
-                                  style: TextStyle(
-                                      fontFamily: 'Times new Roman',
-                                      color: Color.fromRGBO(143, 148, 251, 1)),
+                          const SizedBox(height: 20),
+
+                          // Password Field
+                          TextFormField(
+                            controller: pass,
+                            obscureText: _obscurePassword,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter Password';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              labelText: "Password",
+                              hintText: "Enter your Password",
+                              prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                                color: Color(0xFF6366F1),
+                              ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: const Color(0xFF94A3B8),
                                 ),
-                                SizedBox(
-                                  width: 2,
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF6366F1),
+                                  width: 1.8,
                                 ),
-                                Image.asset(
-                                  'assets/images/technocart.png',
-                                  width: 25,
-                                  // Set the width as needed for larger screens
-                                ),
-                              ],
-                            )
+                              ),
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Login Action Button
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 1400),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          elevation: 4,
+                          shadowColor: const Color(0xFF6366F1).withOpacity(0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF4F46E5),
+                                Color(0xFF6366F1),
+                              ],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Container(
+                            alignment: Alignment.center,
+                            child: _isLoading
+                                ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                                : const Text(
+                              "Login",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 50),
+
+                  // Footer Branding
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 1600),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Designed By Technocrat",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6366F1),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Image.asset(
+                          'assets/images/technocart.png',
+                          width: 22,
+                          height: 22,
+                        ),
                       ],
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
           ),
-        )
-      );
+        ),
+      ),
+    );
   }
 }

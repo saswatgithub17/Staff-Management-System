@@ -133,30 +133,65 @@ class _ContactPageState extends State<ContactPrev> {
   }
 
   Widget _buildCardItem(String course, Color cardColor, BuildContext context) {
-    return Card(
-      color: cardColor,
-      margin: const EdgeInsets.only(top: 16),
-      elevation: 5,
-      child: InkWell(
-        onTap: () {
-          _navigateToContactPage(course, context);
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  course,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF64748B).withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            _navigateToContactPage(course, context);
+          },
+          borderRadius: BorderRadius.circular(16),
+          splashColor: Colors.blueAccent.withOpacity(0.1),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: Color(0xFF2563EB),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      course,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Color(0xFF1E293B),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Color(0xFF94A3B8),
+                  size: 18,
+                ),
+              ],
+            ),
           ),
         ),
       ),

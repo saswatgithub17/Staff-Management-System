@@ -1,7 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class Admin_ADD_WORK extends StatefulWidget {
   const Admin_ADD_WORK({Key? key}) : super(key: key);
@@ -13,54 +13,88 @@ class Admin_ADD_WORK extends StatefulWidget {
 class _Admin_ADD_WORK_State extends State<Admin_ADD_WORK> {
   List<dynamic> items = [];
   String? selectedStaff;
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
-  Future<void> _addTask() async {
-    late String user = selectedStaff.toString().trim();
-    final response = await http.post(
-      Uri.parse('https://creativecollege.in/Flutter/Admin_Add_Task.php'),
-      body: {
-        'TITLE': titleController.text,
-        'DESCRIPTION': descriptionController.text,
-        'Name': user,
-      },
-    );
-    if (response.statusCode == 200) {
-      if (response.body == 'Success') {
-        Fluttertoast.showToast(
-          msg: 'WORK ADDED',
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-        descriptionController.text = '';
-        titleController.text = '';
-      } else {
-        Fluttertoast.showToast(
-          msg: 'Failed Loading',
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
-      }
-    } else {
-      // Handle exceptions if needed
-    }
+  @override
+  void dispose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    super.dispose();
   }
-
-  TextEditingController titleController = TextEditingController();
-  TextEditingController descriptionController = TextEditingController();
 
   Future<void> fetchData() async {
     var url = Uri.parse('https://creativecollege.in/Flutter/staff_list.php');
-    var response = await http.get(url);
-    if (response.statusCode == 200) {
-      setState(() {
-        items = json.decode(response.body);
-        items.sort((a, b) => a['name'].compareTo(b['name']));
-        selectedStaff = items.isNotEmpty ? items[0]['name'] : null;
-      });
-    } else {
-      print('Failed to load data');
+    try {
+      var response = await http.get(url);
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            items = json.decode(response.body);
+            items.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
+            selectedStaff = items.isNotEmpty ? items[0]['name'] : null;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _addTask() async {
+    if (selectedStaff == null || selectedStaff!.isEmpty) {
+      Fluttertoast.showToast(msg: 'Please select a staff member');
+      return;
+    }
+
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://creativecollege.in/Flutter/Admin_Add_Task.php'),
+        body: {
+          'TITLE': titleController.text.trim(),
+          'DESCRIPTION': descriptionController.text.trim(),
+          'Name': selectedStaff!.trim(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        if (response.body.trim() == 'Success') {
+          Fluttertoast.showToast(
+            msg: 'WORK ASSIGNED SUCCESSFULLY',
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+            textColor: Colors.white,
+          );
+          titleController.clear();
+          descriptionController.clear();
+        } else {
+          Fluttertoast.showToast(
+            msg: response.body,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.redAccent,
+            textColor: Colors.white,
+          );
+        }
+      }
+    } catch (_) {
+      Fluttertoast.showToast(
+        msg: 'Connection error',
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        textColor: Colors.white,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -72,131 +106,198 @@ class _Admin_ADD_WORK_State extends State<Admin_ADD_WORK> {
 
   @override
   Widget build(BuildContext context) {
-    const _color1 = Color.fromARGB(255, 7, 6, 6);
-
     return Scaffold(
-      backgroundColor: Colors.white, // Set background color to white
+      backgroundColor: const Color(0xFFF8FAFC),
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
-            backgroundColor: _color1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-            ),
-            title: Text(
-              'Admin Panel',
+            backgroundColor: const Color(0xFF0F172A),
+            title: const Text(
+              'Assign Work',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                fontFamily: 'Times New Roman',
               ),
             ),
             floating: false,
             pinned: true,
+            iconTheme: const IconThemeData(color: Colors.white),
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12.0),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8.0),
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
-                          spreadRadius: 2,
-                          blurRadius: 5,
-                          offset: Offset(0, 3),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 10),
+
+                    // Card Form Container
+                    Container(
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF64748B).withOpacity(0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Select Staff Member",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF475569),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Staff Dropdown
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14.0),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: selectedStaff,
+                                hint: const Text("Select Staff"),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    selectedStaff = newValue;
+                                  });
+                                },
+                                items: items.map<DropdownMenuItem<String>>((dynamic item) {
+                                  return DropdownMenuItem<String>(
+                                    value: item['name'],
+                                    child: Text(item['name'] ?? '',
+                                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Title Field
+                          TextFormField(
+                            controller: titleController,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter Work Title';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Title of Work',
+                              hintText: 'Enter title',
+                              prefixIcon: const Icon(Icons.title_rounded, color: Color(0xFFD97706)),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFFD97706), width: 1.8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Description Field
+                          TextFormField(
+                            controller: descriptionController,
+                            maxLines: 4,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter Description';
+                              }
+                              return null;
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Description of Work',
+                              hintText: 'Enter work details & instructions',
+                              prefixIcon: const Icon(Icons.description_outlined, color: Color(0xFFD97706)),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFFD97706), width: 1.8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              titleController.clear();
+                              descriptionController.clear();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE2E8F0),
+                              foregroundColor: const Color(0xFF1E293B),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Clear', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _addTask,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFD97706),
+                              foregroundColor: Colors.white,
+                              elevation: 3,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                                : const Text('Assign Work', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
                         ),
                       ],
                     ),
-                    child: DropdownButton<String>(
-                      value: selectedStaff,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedStaff = newValue;
-                        });
-                      },
-                      items: items.map<DropdownMenuItem<String>>((dynamic item) {
-                        return DropdownMenuItem<String>(
-                          value: item['name'],
-                          child: Text(item['name']),
-                        );
-                      }).toList(),
-                      style: TextStyle(color: _color1),
-                      dropdownColor: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: titleController,
-                    decoration: InputDecoration(
-                      labelText: 'Enter Title Of Work',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                        borderSide: BorderSide(color: _color1),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: descriptionController,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      labelText: 'Enter Description Of Work',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                        borderSide: BorderSide(color: _color1),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          _addTask();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _color1,
-                          minimumSize: const Size(120.0, 50.0),
-                          textStyle: TextStyle(fontSize: 18, color: Colors.white,fontFamily: 'Times New Roman',),
-                          elevation: 3,
-
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                        child: const Text('Add'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          titleController.clear();
-                          descriptionController.clear();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          minimumSize: const Size(120.0, 50.0),
-                          textStyle: TextStyle(fontSize: 18,color: Colors.white,fontFamily: 'Times New Roman',),
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                        child: const Text('Clear'),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

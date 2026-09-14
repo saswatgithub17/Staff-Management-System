@@ -128,60 +128,69 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget _buildCard(
-      String imagePath, String title, VoidCallback onTap, int index) {
+      String imagePath, String title, Color accentColor, VoidCallback onTap, int index) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardSize = constraints.maxWidth;
         return FadeInUp(
-          duration: Duration(milliseconds: 500 + (index * 100)),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(15),
-            child: Container(
-              margin: EdgeInsets.all(cardSize * 0.02),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 6,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: cardSize * 0.4,
-                    height: cardSize * 0.4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        imagePath,
-                        width: cardSize * 0.3,
-                        height: cardSize * 0.3,
+          duration: Duration(milliseconds: 250 + (index * 50)),
+          child: Container(
+            margin: EdgeInsets.all(cardSize * 0.015),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF64748B).withOpacity(0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(20),
+                splashColor: accentColor.withOpacity(0.12),
+                highlightColor: accentColor.withOpacity(0.05),
+                child: Padding(
+                  padding: EdgeInsets.all(cardSize * 0.08),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: cardSize * 0.42,
+                        height: cardSize * 0.42,
+                        decoration: BoxDecoration(
+                          color: accentColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Image.asset(
+                            imagePath,
+                            width: cardSize * 0.28,
+                            height: cardSize * 0.28,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  SizedBox(height: cardSize * 0.05),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: cardSize * 0.05),
-                    child: Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: cardSize * 0.06,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                      SizedBox(height: cardSize * 0.06),
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: cardSize * 0.065,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1E293B),
+                          height: 1.2,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -203,13 +212,13 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF8FAFC),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
             expandedHeight: MediaQuery.of(context).size.height * 0.2, // Responsive height
             pinned: true,
-            backgroundColor: Colors.black,
+            backgroundColor: const Color(0xFF0F172A),
             shape: const RoundedRectangleBorder(
               borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(30),
@@ -240,6 +249,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/contact.png',
                           'Student Contact Record',
+                          const Color(0xFF0D9488), // Teal
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -251,6 +261,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/student attendance.png',
                           'Student Attendance',
+                          const Color(0xFF8B5CF6), // Purple
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -262,6 +273,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/work.png',
                           'Work Details',
+                          const Color(0xFF4F46E5), // Indigo
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -273,6 +285,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/task.png',
                           'Task Management',
+                          const Color(0xFF0284C7), // Blue
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -284,6 +297,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/report.png',
                           'Academic Report',
+                          const Color(0xFF059669), // Emerald Green
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -295,6 +309,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/report.png',
                           'Report',
+                          const Color(0xFF0891B2), // Cyan
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -306,6 +321,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/add task.png',
                           'Add Task',
+                          const Color(0xFFD97706), // Amber
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -317,6 +333,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/apply for leave.png',
                           'Apply Leave',
+                          const Color(0xFF38BDF8), // Sky Blue
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -328,6 +345,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/feedback.png',
                           'Feedback',
+                          const Color(0xFFE11D48), // Rose
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -339,6 +357,7 @@ class _DashboardState extends State<Dashboard> {
                         return _buildCard(
                           'assets/icons/mis.png',
                           'Notes & Assignment',
+                          const Color(0xFF7C3AED), // Deep Violet
                               () => Navigator.push(
                             context,
                             MaterialPageRoute(

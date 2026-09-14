@@ -16,44 +16,55 @@ class Admin_Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Admin_Dashboard> {
-  // Black and white color scheme
-  final Color primaryColor = Colors.black;
-  final Color backgroundColor = Colors.white;
-  final Color cardColor = Colors.white;
-  final Color textColor = Colors.black;
-  final Color iconColor = Colors.black87;
-  final Color borderColor = Colors.grey.shade300;
-
-  Widget _buildDashboardCard(IconData icon, String title, VoidCallback onTap) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: borderColor, width: 1),
+  Widget _buildDashboardCard(IconData icon, String title, Color accentColor, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF64748B).withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        hoverColor: Colors.grey.shade100,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 36, color: iconColor),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: accentColor.withOpacity(0.12),
+          highlightColor: accentColor.withOpacity(0.05),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 28, color: accentColor),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF1E293B),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -63,17 +74,17 @@ class _DashboardState extends State<Admin_Dashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text('Admin Dashboard',
+        title: const Text('Admin Dashboard',
             style: TextStyle(
-                color: primaryColor,
+                color: Color(0xFF0F172A),
                 fontWeight: FontWeight.bold,
                 fontSize: 20)),
         centerTitle: true,
-        backgroundColor: backgroundColor,
+        backgroundColor: const Color(0xFFF8FAFC),
         elevation: 0,
-        iconTheme: IconThemeData(color: primaryColor),
+        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -97,29 +108,29 @@ class _DashboardState extends State<Admin_Dashboard> {
 
   List<Widget> _buildDashboardItems(BuildContext context) {
     return [
-      _buildDashboardCard(Icons.calendar_today, 'Date Wise Work', () {
-        _navigateTo(context, AdminDateWiseWork());
+      _buildDashboardCard(Icons.calendar_today_rounded, 'Date Wise Work', const Color(0xFF4F46E5), () {
+        _navigateTo(context, const AdminDateWiseWork());
       }),
-      _buildDashboardCard(Icons.beach_access, 'Staff Leave', () {
-        _navigateTo(context, Admin_Leave_Page());
+      _buildDashboardCard(Icons.beach_access_rounded, 'Staff Leave', const Color(0xFF0284C7), () {
+        _navigateTo(context, const Admin_Leave_Page());
       }),
-      _buildDashboardCard(Icons.person_add, 'Add Staff', () {
-        _navigateTo(context, StaffAdd());
+      _buildDashboardCard(Icons.person_add_alt_1_rounded, 'Add Staff', const Color(0xFF16A34A), () {
+        _navigateTo(context, const StaffAdd());
       }),
-      _buildDashboardCard(Icons.person_remove, 'Delete Staff', () {
-        _navigateTo(context, StaffDelete());
+      _buildDashboardCard(Icons.person_remove_rounded, 'Delete Staff', const Color(0xFFDC2626), () {
+        _navigateTo(context, const StaffDelete());
       }),
-      _buildDashboardCard(Icons.contacts, 'Student Contact', () {
-        _navigateTo(context, Admin_ContactPrev());
+      _buildDashboardCard(Icons.contacts_rounded, 'Student Contact', const Color(0xFF0D9488), () {
+        _navigateTo(context, const Admin_ContactPrev());
       }),
-      _buildDashboardCard(Icons.people, 'Student Attendance', () {
+      _buildDashboardCard(Icons.people_alt_rounded, 'Student Attendance', const Color(0xFF8B5CF6), () {
         _navigateTo(context, Attendance());
       }),
-      _buildDashboardCard(Icons.assignment, 'Assign Work', () {
-        _navigateTo(context, Admin_ADD_WORK());
+      _buildDashboardCard(Icons.assignment_rounded, 'Assign Work', const Color(0xFFD97706), () {
+        _navigateTo(context, const Admin_ADD_WORK());
       }),
-      _buildDashboardCard(Icons.comment, 'Feedback', () {
-        _navigateTo(context, Feedbackpage());
+      _buildDashboardCard(Icons.comment_rounded, 'Feedback', const Color(0xFFE11D48), () {
+        _navigateTo(context, const Feedbackpage());
       }),
     ];
   }
@@ -135,7 +146,7 @@ class _DashboardState extends State<Admin_Dashboard> {
             child: child,
           );
         },
-        transitionDuration: Duration(milliseconds: 200),
+        transitionDuration: const Duration(milliseconds: 200),
       ),
     );
   }

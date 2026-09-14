@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:animate_do/animate_do.dart';
 
-const _color1 = Colors.black;
-var bgColor = Colors.grey[200];
+const _color1 = Color(0xFF0F172A);
+var bgColor = const Color(0xFFF8FAFC);
 
 class Mob_Add_Task extends StatefulWidget {
   const Mob_Add_Task({Key? key}) : super(key: key);

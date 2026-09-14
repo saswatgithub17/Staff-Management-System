@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:staff_task_management/Admin_DashBoard.dart';
 import 'package:staff_task_management/Admin_leave_Mgmt.dart';
 import 'package:staff_task_management/Staff_List.dart';
@@ -22,7 +22,7 @@ class _HomeNavState extends State<HomeNav> {
 
   final List<Widget> _pages = [
     StaffList(),
-    Admin_Dashboard(),
+    const Admin_Dashboard(),
   ];
 
   @override
@@ -40,25 +40,21 @@ class _HomeNavState extends State<HomeNav> {
 
       if (response.statusCode == 200) {
         List<dynamic> allData = json.decode(response.body);
-        List<dynamic> pendingData = allData.where((item) => item['Status'] == 'Pending').toList();
+        List<dynamic> pendingData =
+        allData.where((item) => item['Status'] == 'Pending').toList();
 
-        setState(() {
-          pendingLeaves = pendingData;
-        });
+        if (mounted) {
+          setState(() {
+            pendingLeaves = pendingData;
+          });
+        }
 
-        if (pendingData.isNotEmpty && !_hasShownPopup) {
+        if (pendingData.isNotEmpty && !_hasShownPopup && mounted) {
           _hasShownPopup = true;
           _showLeaveNotification(context, pendingData);
         }
       }
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: 'Error checking leave requests',
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-    }
+    } catch (_) {}
   }
 
   void _showLeaveNotification(BuildContext context, List<dynamic> leaves) {
@@ -67,32 +63,42 @@ class _HomeNavState extends State<HomeNav> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Pending Leave Requests', style: TextStyle(fontWeight: FontWeight.bold)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Pending Leave Requests',
+              style: TextStyle(fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('You have ${leaves.length} pending leave request(s):'),
-                SizedBox(height: 10),
-                ...leaves.map((leave) => ListTile(
-                  title: Text(leave['Name'] ?? 'Unknown'),
-                  subtitle: Text('Reason: ${leave['Reason']}\nDates: ${leave['Start_Date']} to ${leave['Last_Date']}'),
-                )).toList(),
+                const SizedBox(height: 10),
+                ...leaves
+                    .map((leave) => ListTile(
+                  title: Text(leave['Name'] ?? 'Unknown',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(
+                      'Reason: ${leave['Reason']}\nDates: ${leave['Start_Date']} to ${leave['Last_Date']}'),
+                ))
+                    .toList(),
               ],
             ),
           ),
           actions: [
             TextButton(
-              child: Text('View All', style: TextStyle(color: Colors.blue)),
+              child: const Text('View All',
+                  style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold)),
               onPressed: () {
+                Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) =>  Admin_Leave_Page()),
+                  MaterialPageRoute(
+                      builder: (context) => const Admin_Leave_Page()),
                 );
               },
             ),
             TextButton(
-              child: Text('Dismiss', style: TextStyle(color: Colors.grey)),
+              child: const Text('Dismiss', style: TextStyle(color: Colors.grey)),
               onPressed: () {
                 Navigator.pop(context);
               },
@@ -110,9 +116,10 @@ class _HomeNavState extends State<HomeNav> {
     await prefs.remove('userID');
     await prefs.remove('password');
 
+    if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => MyApp()),
+      MaterialPageRoute(builder: (context) => const MyApp()),
           (Route<dynamic> route) => false,
     );
   }
@@ -120,17 +127,25 @@ class _HomeNavState extends State<HomeNav> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        title: const Text(
+          'Hi, Admin',
+          style: TextStyle(
+              fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         actions: <Widget>[
           Container(
-            margin: EdgeInsets.only(right: 16.0),
+            margin: const EdgeInsets.only(right: 12.0),
             child: Stack(
+              alignment: Alignment.center,
               children: [
                 IconButton(
-                  icon: Icon(
-                    Icons.notifications,
-                    size: 30,
+                  icon: const Icon(
+                    Icons.notifications_outlined,
+                    size: 26,
                     color: Colors.white,
                   ),
                   onPressed: () {
@@ -146,23 +161,24 @@ class _HomeNavState extends State<HomeNav> {
                 ),
                 if (pendingLeaves.isNotEmpty)
                   Positioned(
-                    right: 8,
-                    top: 8,
+                    right: 6,
+                    top: 6,
                     child: Container(
-                      padding: EdgeInsets.all(2),
-                      constraints: BoxConstraints(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
                         minWidth: 16,
                         minHeight: 16,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
                       child: Text(
                         pendingLeaves.length.toString(),
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -172,10 +188,10 @@ class _HomeNavState extends State<HomeNav> {
             ),
           ),
           IconButton(
-            icon: Icon(
-              Icons.logout,
-              size: 30,
-              color: Colors.white,
+            icon: const Icon(
+              Icons.logout_rounded,
+              size: 24,
+              color: Colors.redAccent,
             ),
             onPressed: () {
               showDialog(
@@ -186,19 +202,21 @@ class _HomeNavState extends State<HomeNav> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20.0),
                     ),
-                    title: Text("Confirm Logout"),
-                    content: Text("Are you sure you want to logout"),
+                    title: const Text("Confirm Logout",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    content: const Text("Are you sure you want to logout?"),
                     actions: <Widget>[
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text("Cancel"),
+                        child: const Text("Cancel"),
                       ),
                       TextButton(
                         onPressed: () {
                           clearSharedPreferences();
-                          Navigator.of(context).pop();
                         },
-                        child: Text("Logout", style: TextStyle(color: Colors.red)),
+                        child: const Text("Logout",
+                            style: TextStyle(
+                                color: Colors.red, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   );
@@ -207,19 +225,31 @@ class _HomeNavState extends State<HomeNav> {
             },
           ),
         ],
-        title: Text(
-          'Hi.. ,  Admin',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
       ),
-      body: _pages[_currentIndex],
-      bottomNavigationBar: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(40),
-          topRight: Radius.circular(40),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
         ),
-        child: Container(
-          color: Colors.black,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (int index) {
@@ -227,19 +257,39 @@ class _HomeNavState extends State<HomeNav> {
                 _currentIndex = index;
               });
             },
+            elevation: 0,
+            backgroundColor: const Color(0xFF0F172A),
+            selectedItemColor: Colors.white,
+            unselectedItemColor: Colors.grey.shade500,
+            selectedFontSize: 13,
+            unselectedFontSize: 12,
+            type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(
-                icon: Icon(Icons.work, color: Colors.white),
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.people_alt_outlined, size: 24),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.people_alt_rounded,
+                      size: 26, color: Color(0xFF6366F1)),
+                ),
                 label: 'Staff Status',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_customize, color: Colors.white),
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.grid_view_outlined, size: 24),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Icon(Icons.grid_view_rounded,
+                      size: 26, color: Color(0xFF6366F1)),
+                ),
                 label: 'Dashboard',
               ),
             ],
-            selectedItemColor: Colors.blue,
-            unselectedItemColor: Colors.grey,
-            backgroundColor: Colors.black,
           ),
         ),
       ),
